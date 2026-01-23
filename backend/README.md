@@ -17,18 +17,13 @@ No business features are implemented at this stage.
 Environment variables are loaded using dotenv and validated using Zod.
 The server will fail fast if any required variable is missing or invalid.
 
-<!-- Required Variables -->
-
-    DATABASE_URL
-    BETTERAUTH_SECRET
-    PORT
-    NODE_ENV
-
 <!-- .env.example -->
 
     DATABASE_URL=postgresql://user:password@localhost:5432/db
     BETTERAUTH_SECRET=dev-secret-key
+    BETTERAUTH_URL=http://localhost:5000
     PORT=5000
+
     NODE_ENV=development
 
 <!-- Installation -->
