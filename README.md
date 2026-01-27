@@ -64,7 +64,7 @@ Create a .env file from .env.example before running Docker.
 Start everything (frontend + backend + database)
 
 ```
- docker compose up --build`
+ docker compose up --build
 ```
 
 This will start:
