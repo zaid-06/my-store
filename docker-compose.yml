@@ -5,8 +5,8 @@ services:
     image: postgres:15
     container_name: mystore-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: mystore_user
+      POSTGRES_PASSWORD: mystore_password
       POSTGRES_DB: mystore
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -16,8 +16,6 @@ services:
   backend:
     build: ./backend
     container_name: mystore-backend
-    env_file:
-      - ./backend/.env
     ports:
       - "5000:5000"
     depends_on:
@@ -26,8 +24,6 @@ services:
   frontend:
     build: ./frontend
     container_name: mystore-frontend
-    env_file:
-      - ./frontend/.env.local
     ports:
       - "3000:3000"
     depends_on:
