@@ -1,0 +1,50 @@
+# ========================
+# Dependencies
+# ========================
+node_modules/
+**/node_modules/
+
+# ========================
+# Build outputs
+# ========================
+dist/
+build/
+.next/
+out/
+
+# ========================
+# Environment variables
+# ========================
+.env
+.env.*
+!.env.example
+
+# ========================
+# Logs
+# ========================
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ========================
+# Drizzle
+# ========================
+drizzle/
+
+# ========================
+# OS / Editor
+# ========================
+.DS_Store
+.vscode/
+
+# ========================
+# TypeScript
+# ========================
+*.tsbuildinfo
+next-env.d.ts
+
+# ========================
+# Docker
+# ========================
+**/.dockerignore
