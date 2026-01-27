@@ -58,27 +58,29 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
 Create a .env file from .env.example before running Docker.
 
 
+```
+
 ## Running the Project
+
 Start everything (frontend + backend + database)
 docker compose up --build
-
 
 This will start:
 Frontend → http://localhost:3000
 Backend API → http://localhost:5000
 PostgreSQL → internal Docker network (persistent volume)
 
-
 ## Database & Migrations (Drizzle)
+
 Apply database schema
 docker compose exec backend pnpm drizzle-kit push
 
 Generate migrations (if needed)
 docker compose exec backend pnpm drizzle-kit generate
 
-
-
 ## Common Commands
+
+---
 
 Stop containers
 docker compose down
@@ -91,7 +93,6 @@ docker compose logs -f
 
 Rebuild containers
 docker compose up --build
-```
 
 ## Authentication
 
