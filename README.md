@@ -59,21 +59,21 @@ Create a .env file from .env.example before running Docker.
 
 ```
 
----
-
 ## Running the Project
 
 Start everything (frontend + backend + database)
 
-docker compose up --build
+```
+ docker compose up --build`
+```
 
 This will start:
 Frontend → http://localhost:3000
 Backend API → http://localhost:5000
 PostgreSQL → internal Docker network (persistent volume)
 
-```
 ---
+
 ## Database & Migrations (Drizzle)
 
 Apply database schema
@@ -82,7 +82,8 @@ docker compose exec backend pnpm drizzle-kit push
 Generate migrations (if needed)
 docker compose exec backend pnpm drizzle-kit generate
 
-----
+---
+
 ## Common Commands
 
 Stop containers
@@ -111,4 +112,7 @@ PostgreSQL data is persisted using Docker volumes
 The project works on a fresh machine with only Docker installed
 No manual database setup required
 Designed for reproducible development environments
+
+```
+
 ```
