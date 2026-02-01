@@ -2,8 +2,8 @@
 
 This repository contains the **My Store** full-stack application, including:
 
-- **Frontend**: Next.js
-- **Backend**: Node.js + Express
+- **Frontend**: Next.js + typescript
+- **Backend**: Node.js + Express + typescript
 - **Database**: PostgreSQL
 - **ORM / Migrations**: Drizzle ORM
 - **Auth**: BetterAuth
