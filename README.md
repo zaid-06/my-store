@@ -74,29 +74,31 @@ PostgreSQL → internal Docker network (persistent volume)
 
 ---
 
-## Database & Migrations (Drizzle)
-
-Apply database schema
-docker compose exec backend pnpm drizzle-kit push
-
-Generate migrations (if needed)
-docker compose exec backend pnpm drizzle-kit generate
-
----
-
 ## Common Commands
 
 Stop containers
+
+```
 docker compose down
+```
 
 Stop and remove volumes (reset DB)
+
+```
 docker compose down -v
+```
 
 View logs
+
+```
 docker compose logs -f
+```
 
 Rebuild containers
+
+```
 docker compose up --build
+```
 
 ## Authentication
 
