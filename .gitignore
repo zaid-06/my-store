@@ -27,10 +27,6 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# ========================
-# Drizzle
-# ========================
-drizzle/
 
 # ========================
 # OS / Editor
