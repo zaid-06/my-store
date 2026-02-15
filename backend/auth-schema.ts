@@ -1,12 +1,21 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
-
+import { pgTable, text, timestamp, boolean, index, pgEnum} from "drizzle-orm/pg-core";
+export const roleEnum = pgEnum("role", [
+  "ADMIN",
+  "CREATOR",
+  "BUYER",
+]);
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
+
+  role: roleEnum("role")
+    .default("BUYER")
+    .notNull(),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -17,7 +26,7 @@ export const user = pgTable("user", {
 export const session = pgTable(
   "session",
   {
-    id: text("id").primaryKey(),
+    id: text("id").primaryKey(),  
     expiresAt: timestamp("expires_at").notNull(),
     token: text("token").notNull().unique(),
     createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -8,6 +8,20 @@
       "when": 1769893878932,
       "tag": "0000_eminent_ikaris",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771074631796,
+      "tag": "0001_perpetual_mach_iv",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771141509464,
+      "tag": "0002_faithful_titania",
+      "breakpoints": true
     }
   ]
 }

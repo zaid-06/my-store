@@ -9,6 +9,7 @@ export function errorHandler(err: any, req: any, res: any, next: any) {
     });
   }
 
+  console.error("[errorHandler]", err);
   return res.status(500).json({
     success: false,
     data: null,

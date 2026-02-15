@@ -3,14 +3,19 @@
   "version": "1.0.0",
   "description": "",
   "main": "dist/server.js",
-  "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "vitest",
-    "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
-    "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts"
-  },
+ "scripts": {
+  "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+  "build": "tsc",
+
+  "start": "npm run db:migrate && node dist/server.js",
+
+  "test": "vitest",
+
+  "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
+
+  "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts"
+}
+,
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -26,6 +31,7 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.9",
