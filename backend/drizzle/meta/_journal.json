@@ -22,6 +22,13 @@
       "when": 1771141509464,
       "tag": "0002_faithful_titania",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771280642279,
+      "tag": "0003_next_harrier",
+      "breakpoints": true
     }
   ]
 }

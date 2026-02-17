@@ -5,6 +5,8 @@ import { env } from "./env";
 import * as userSchema from "../modules/users/user.schema";
 import * as storeSchema from "../modules/stores/store.schema"; 
 
+import * as productSchema from "../modules/products/product.schema";
+
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
 });
@@ -13,5 +15,6 @@ export const db = drizzle(pool, {
   schema: {
     ...userSchema,
     ...storeSchema, // ✅ ADD THIS
+    ...productSchema,
   },
 });
