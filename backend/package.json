@@ -9,8 +9,17 @@
 
   "start": "npm run db:migrate && node dist/server.js",
 
-  "test": "vitest",
 
+
+
+  "test": "vitest",
+  "test:watch": "vitest --watch",
+  "test:run": "vitest run",
+  
+
+
+
+  
   "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
 
   "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts"

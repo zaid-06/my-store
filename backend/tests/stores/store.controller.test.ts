@@ -55,7 +55,7 @@ describe("Store controller", () => {
       const created = [
         {
           id: "store-1",
-          userId,
+          userId: userId,
           username: "mystore",
           name: "My Store",
           description: null,
@@ -102,7 +102,7 @@ describe("Store controller", () => {
       mockAuth.api.getSession.mockResolvedValue({ user: { id: userId } });
       mockStoreService.getStoreByUserId.mockResolvedValue({
         id: "existing-store",
-        userId,
+        userId: userId,
         username: "existing",
         name: "Existing Store",
       });
@@ -126,7 +126,7 @@ describe("Store controller", () => {
       const userId = "user-1";
       const existing = {
         id: "s1",
-        userId,
+        userId: userId,
         username: "fixed",
         name: "Store",
         deletedAt: null,

@@ -39,6 +39,8 @@ export const createStoreController = async (req: Request, res: Response) => {
   return res.json(store);
 };
 
+
+
 /**
  * Controller to get the authenticated user's store
  */

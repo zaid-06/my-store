@@ -61,7 +61,7 @@ export default function AuthCheck() {
         onClick={handleSignin}
         className="w-full bg-green-600 text-white py-2 rounded"
       >
-        Sign In
+        Sign inn 
       </button>
 
       <button

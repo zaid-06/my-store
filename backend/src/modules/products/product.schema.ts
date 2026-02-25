@@ -92,7 +92,7 @@ export const productMedia = pgTable("product_media", {
 export const productSchema = z.object({
   title: z.string().min(1, "Title is required").max(120),
   description: z.string().max(2000).optional(),
-  status: z.enum(["draft", "published", "archived"]),
+  // status: z.enum(["draft", "published", "archived"]),
   isFeatured: z.boolean(),
 });
 
@@ -119,3 +119,39 @@ export const mediaSchema = z.object({
 });
 
 export type MediaInput = z.infer<typeof mediaSchema>;
+
+export const updateProductSchema = z.object({
+  title: z.string().min(1).max(120).optional(),
+  description: z.string().max(2000).optional(),
+  status: z.enum(["draft", "published", "archived"]).optional(),
+  isFeatured: z.boolean().optional(),
+});
+
+export type UpdateProductInput = z.infer<typeof updateProductSchema>;
+
+import { relations } from "drizzle-orm";
+export const productsRelations = relations(products, ({ many }) => ({
+  variants: many(productVariants),
+  media: many(productMedia),
+  categories: many(productCategories),
+}));
+
+export const productVariantsRelations = relations(
+  productVariants,
+  ({ one }) => ({
+    product: one(products, {
+      fields: [productVariants.productId],
+      references: [products.id],
+    }),
+  })
+);
+
+export const productMediaRelations = relations(
+  productMedia,
+  ({ one }) => ({
+    product: one(products, {
+      fields: [productMedia.productId],
+      references: [products.id],
+    }),
+  })
+);

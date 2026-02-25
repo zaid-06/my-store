@@ -9,6 +9,10 @@ import {
    deleteMyStoreController,
 } from "./store.controller";
 import { requireAuth, requireRole } from "../auth/auth.middleware";
+import { 
+  listPublishedProductsByStoreController,
+   getSinglePublishedProductController,
+  } from "../products/product.controller";
 
 export const storeRoutes = Router();
 
@@ -20,3 +24,12 @@ storeRoutes.delete("/me", requireAuth, deleteMyStoreController);
 storeRoutes.get("/:username", getPublicStoreController);
 
 
+storeRoutes.get(
+  "/:username/products",
+  listPublishedProductsByStoreController
+);
+
+storeRoutes.get(
+  "/:username/products/:productId",
+  getSinglePublishedProductController
+)

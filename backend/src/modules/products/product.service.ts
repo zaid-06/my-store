@@ -1,5 +1,38 @@
-import { db } from "../../config/db";
-import { products } from "./product.schema";
+
+import { ApiError } from "../../shared/api-error";
+import { findProductByIdAndStoreId } from "./product.db";
+import {
+  products,
+  categories,
+  productVariants,
+  productMedia,
+  UpdateProductInput ,
+} from "./product.schema";
+
+import {
+  findProductByIdAndStore,
+  updateProductById,
+  findVariantsByProductId,
+  findMediaByProductId,
+  dbGetSinglePublishedProduct,
+  dbGetVariantsByProductId,
+  dbGetMediaByProductId,
+  softDeleteProductDB ,
+  findProductForVariantUpdate,
+  updateVariantById,
+  findProductForVariantDelete,
+  getVariantsByProductId,
+  deleteVariantById,
+  findProductForMediaAdd,
+  countProductMedia,
+  insertProductMedia,
+  findProductForMediaRemoval,
+  deleteProductMedia,
+} from "./product.db";
+
+
+// product.service.ts
+import * as productDb from "./product.db";
 
 export const createProduct = async (data: {
   storeId: string;
@@ -7,15 +40,449 @@ export const createProduct = async (data: {
   description?: string | null;
   isFeatured?: boolean;
 }) => {
-  const [row] = await db
-    .insert(products)
-    .values({
-      storeId: data.storeId,
-      title: data.title,
-      description: data.description ?? null,
-      status: "draft",
-      isFeatured: data.isFeatured ?? false,
-    })
-    .returning();
-  return row;
+  
+
+  return productDb.insertProduct(data);
+};
+
+
+export const createCategory = async (
+  storeId: string,
+  name: string
+) => {
+  // 1️⃣ Business rule: no duplicate category
+  const exists = await productDb.findCategoryByStoreAndName(
+    storeId,
+    name
+  );
+
+  console.log("Checking if category exists for storeId:", storeId, "and name:", name, "Result:", exists);
+
+  if (exists) {
+    throw new ApiError("Category already exists", 400);
+  }
+
+  // 2️⃣ Create
+  return productDb.insertCategory({
+    storeId,
+    name,
+  });
+};
+
+// src/modules/products/product.service.ts
+// export const createCategory = async (storeId: string, name: string) => {
+//   const normalizedName = name.trim();
+
+//   const exists = await productDb.findCategoryByStoreAndName(
+//     storeId,
+//     normalizedName
+//   );
+
+//   if (exists) {
+//     throw new ApiError("Category already exists", 400);
+//   }
+
+//   return productDb.insertCategory({
+//     storeId,
+//     name: normalizedName,
+//   });
+// };
+
+
+// get all categories
+// SERVICE
+export const listCategoriesByStore = async (storeId: string) => {
+  
+
+  return productDb.listCategoriesByStore(storeId);
+};
+
+
+// get all product 
+export const getProductsByStore = async (storeId: string) => {
+ 
+  return productDb.getProductsByStore(storeId);
+};
+
+
+
+// Get single product controller 
+
+
+export const getProductByIdForOwner = async ({
+  productId,
+  storeId,
+}: {
+  productId: string;
+  storeId: string;
+}) => {
+
+  // apply rule 
+  
+  const product = await findProductByIdAndStoreId({
+    productId,
+    storeId,
+  });
+
+  return product; 
+};
+
+
+
+
+export const updateProductByIdForOwner = async ({
+  productId,
+  storeId,
+  data,
+}: {
+  productId: string;
+  storeId: string;
+  data: UpdateProductInput;
+}) => {
+  // 1️⃣ Ownership + existence check
+  const product = await findProductByIdAndStore(productId, storeId);
+  if (!product) return null;
+
+  // 2️⃣ Publishing rules
+  if (data.status === "published") {
+    const variants = await findVariantsByProductId(productId);
+    const media = await findMediaByProductId(productId);
+
+    if (variants.length === 0) {
+      throw new Error("Cannot publish product without variants");
+    }
+
+    if (media.length === 0) {
+      throw new Error("Cannot publish product without media");
+    }
+
+    if (variants.some((v) => v.inventory < 0)) {
+      throw new Error("Variant inventory cannot be negative");
+    }
+  }
+
+  // 3️⃣ Update
+  return await updateProductById(productId, data);
+};
+
+
+
+
+export const softDeleteProduct = async ({
+  productId,
+  storeId,
+}: {
+  productId: string;
+  storeId: string;
+}) => {
+   // 1️⃣ Check ownership
+  // const product = await findProductByIdAndStore({
+  //   productId,
+  //   storeId,
+  // });
+
+  // if (!product) return null;
+
+  // // 2️⃣ Already deleted
+  // if (product.deletedAt) return null;
+  return await softDeleteProductDB({ productId, storeId });
+};
+
+
+
+
+
+
+export const addVariantToProduct = async ({
+  productId,
+  storeId,
+  name,
+  price,
+  inventory,
+}: {
+  productId: string;
+  storeId: string;
+  name: string;
+  price: number;
+  inventory: number;
+}) => {
+  // 1️⃣ Product ownership & existence check
+  const product = await productDb.findProductForVariantInsert({
+    productId,
+    storeId,
+  }); 
+
+  if (!product) {
+    return null;
+  }
+
+  // 2️⃣ Insert variant
+  const variant = await productDb.insertVariant({
+    productId,
+    name,
+    price: price.toString(), // decimal → string
+    inventory,
+  });
+
+  // return variant;
+  // const variant = await productDb.insertVariant({
+  // productId,
+  // name,
+  // price: price.toFixed(2),
+  // inventory,
+// });
+
+if (!variant) return null;
+
+return {
+  ...variant,
+  price: Number(variant.price).toFixed(2),
+};
+};
+
+
+
+
+
+
+export const updateVariant = async ({
+  productId,
+  variantId,
+  storeId,
+  name,
+  price,
+  inventory,
+}: {
+  productId: string;
+  variantId: string;
+  storeId: string;
+  name?: string;
+  price?: number;
+  inventory?: number;
+}) => {
+  // 1️⃣ Check product ownership
+  const product = await findProductForVariantUpdate({
+    productId,
+    storeId,
+  });
+
+  if (!product) {
+    return null; // controller will return 404
+  }
+
+  // 2️⃣ Update variant
+  const updatedVariant = await updateVariantById({
+    productId,
+    variantId,
+    name,
+    price,
+    inventory,
+  });
+
+  return updatedVariant;
+};
+
+
+export const deleteVariant = async ({
+  productId,
+  variantId,
+  storeId,
+}: {
+  productId: string;
+  variantId: string;
+  storeId: string;
+}) => {
+  // 1️⃣ Product ownership check
+  const product = await findProductForVariantDelete(productId, storeId);
+  if (!product) return "NOT_FOUND";
+
+  // 2️⃣ Variant count
+  const variants = await getVariantsByProductId(productId);
+  const isLastVariant = variants.length === 1;
+
+  // 3️⃣ Business rule
+  if (product.status === "published" && isLastVariant) {
+    return "LAST_VARIANT_PUBLISHED";
+  }
+
+  // 4️⃣ Delete variant
+  await deleteVariantById(productId, variantId);
+
+  return "DELETED";
+};
+
+
+
+
+export const addMediaToProduct = async ({
+  productId,
+  storeId,
+  url,
+  type,
+  position,
+}: {
+  productId: string;
+  storeId: string;
+  url: string;
+  type: "image" | "video";
+  position?: number;
+}) => {
+  // 1️⃣ Product ownership + not deleted
+  const product = await findProductForMediaAdd(productId, storeId);
+  if (!product) return null;
+
+  // 2️⃣ Media count rule
+  const mediaCount = await countProductMedia(productId);
+  if (mediaCount >= 10) {
+    throw new Error("Maximum 10 media items allowed per product");
+  }
+
+  // 3️⃣ Insert media
+  const media = await insertProductMedia({
+    productId,
+    url,
+    type,
+    position: position ?? mediaCount,
+  });
+
+  return media;
+};
+
+
+
+
+export const removeMediaFromProduct = async ({
+  productId,
+  mediaId,
+  storeId,
+}: {
+  productId: string;
+  mediaId: string;
+  storeId: string;
+}) => {
+  // 1️⃣ Product ownership + not deleted
+  const product = await findProductForMediaRemoval(productId, storeId);
+  if (!product) return false;
+
+  // 2️⃣ Delete media
+  const result = await deleteProductMedia(productId, mediaId);
+  if (result.length === 0) return false;
+
+  return true;
+};
+
+// `````
+// export const getPublishedProductsByStoreId = async (storeId: string) => {
+//   return productDb.findPublishedProductsByStoreId(storeId);
+// };
+
+export const getPublishedProductsByStoreId = async (storeId: string) => {
+  const products = await productDb.findPublishedProductsByStoreId(storeId);
+
+  const visibleProducts = [];
+
+  for (const product of products) {
+    const [variants, media] = await Promise.all([
+      productDb.dbGetVariantsByProductId(product.id),
+      productDb.dbGetMediaByProductId(product.id),
+    ]);
+
+    if (variants.length > 0 && media.length > 0) {
+      visibleProducts.push({
+        ...product,
+        variants,
+        media,
+      });
+    }
+  }
+
+  return visibleProducts;
+};
+
+// ````
+
+export const getSinglePublishedProductByStoreAndId = async ({
+  storeId,
+  productId,
+}: {
+  storeId: string;
+  productId: string;
+}) => {
+  // 1️⃣ Product
+  const product = await dbGetSinglePublishedProduct({
+    storeId,
+    productId,
+  });
+
+  if (!product) return null;
+
+  // 2️⃣ Relations
+  const [variants, media] = await Promise.all([
+    dbGetVariantsByProductId(product.id),
+    dbGetMediaByProductId(product.id),
+  ]);
+
+  // ✅ PUBLIC VISIBILITY RULE
+  if (variants.length === 0 || media.length === 0) {
+    return null;
+  }
+
+  return {
+    ...product,
+    variants,
+    media,
+  };
+};
+
+
+
+// testing 
+import { db } from "@/config/db";
+// import { products, productVariants } from "./product.schema";
+import { eq, and } from "drizzle-orm";
+
+type AddVariantInput = {
+  productId: string;
+  storeId: string;
+  name: string;
+  price: number;
+  inventory: number;
+};
+
+
+
+
+
+
+/**
+ * Publish product with validation rules
+ */
+export const publishProduct = async ({
+  productId,
+  storeId,
+}: {
+  productId: string;
+  storeId: string;
+}) => {
+  // 1️⃣ ownership + existence
+  const product = await productDb.findProductForPublish({
+    productId,
+    storeId,
+  });
+
+  if (!product) return null;
+
+  // 2️⃣ must have at least 1 variant
+  const variantCount = await productDb.countProductVariants(productId);
+  if (variantCount === 0) return null;
+
+  // 3️⃣ must have at least 1 media
+  const mediaCount = await productDb.countProductMedia(productId);
+  if (mediaCount === 0) return null;
+
+  // 4️⃣ update status
+  return await productDb.updateProductStatus({
+    productId,
+    status: "published",
+  });
 };

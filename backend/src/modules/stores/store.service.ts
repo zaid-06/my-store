@@ -1,84 +1,47 @@
-import { db } from "../../config/db";
 
-import { stores } from "./store.schema";
-
-import { eq } from "drizzle-orm";
-
-
+import {
+  dbCreateStore,
+  dbGetStoreByUserId,
+  dbGetStoreByUsername,
+  dbGetStoreById,
+  dbUpdateStoreByUserId,
+  dbSoftDeleteStoreByUserId,
+  dbListStores,
+  dbRestoreStoreById,
+} from "./store.db";
 
 export const createStore = async (data: any) => {
-
-  return db.insert(stores).values(data).returning();
-
+  return dbCreateStore(data);
 };
 
 export const getStoreByUserId = async (userId: string) => {
-
-  return db.query.stores.findFirst({
-
-    where: eq(stores.userId, userId),
-
-  });
-
+  return dbGetStoreByUserId(userId);
 };
 
 export const getStoreByUsername = async (username: string) => {
-
-  return db.query.stores.findFirst({
-
-    where: eq(stores.username, username),
-
-  });
-
-};
-
-export const updateStore = async (userId: string, data: any) => {
-
-  return db
-
-    .update(stores)
-
-    .set(data)
-
-    .where(eq(stores.userId, userId))
-
-    .returning();
-
-};
-
-
-export const softDeleteStore = async (userId: string) => {
-
-  return db
-
-    .update(stores)
-
-    .set({ deletedAt: new Date() })
-
-    .where(eq(stores.userId, userId));
-
-};
-
-
-export const listStores = async () => {
-  return db.query.stores.findMany({
-    orderBy: (stores, { desc }) => [desc(stores.createdAt)],
-  });
+  return dbGetStoreByUsername(username);
 };
 
 export const getStoreById = async (id: string) => {
-  return db.query.stores.findFirst({
-    where: eq(stores.id, id),
-  });
+  return dbGetStoreById(id);
+};
+
+export const updateStore = async (userId: string, data: any) => {
+  return dbUpdateStoreByUserId(userId, data);
+};
+
+export const softDeleteStore = async (userId: string) => {
+  return dbSoftDeleteStoreByUserId(userId);
+};
+
+export const listStores = async () => {
+  return dbListStores();
 };
 
 export const restoreStore = async (id: string) => {
-  const store = await getStoreById(id);
+  const store = await dbGetStoreById(id);
   if (!store || store.deletedAt == null) return null;
-  const [restored] = await db
-    .update(stores)
-    .set({ deletedAt: null, updatedAt: new Date() })
-    .where(eq(stores.id, id))
-    .returning();
+
+  const [restored] = await dbRestoreStoreById(id);
   return restored;
 };
