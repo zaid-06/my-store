@@ -181,7 +181,7 @@ Draft → Published → Soft Deleted
 * Visible in public APIs
 * Must contain variants and media
 
-3️⃣ Soft Deleted
+### 3️⃣ Soft Deleted
 * deletedAt timestamp is set
 * Product is hidden from all public queries
 * Data remains in database
@@ -270,11 +270,11 @@ Instead:
 deletedAt = new Date()
 Soft Delete Rules:
 * Only product owner (store) can delete
-*Already deleted product cannot be deleted again
+* Already deleted product cannot be deleted again
 * Deleted products are excluded from:
-** Published queries
-** Public visibility APIs
-** Standard listing APIs
+   * Published queries
+   * Public visibility APIs 
+   * Standard listing APIs
 
 ### Advantages:
 * Audit safe
