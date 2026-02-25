@@ -153,8 +153,7 @@ Designed for reproducible development environments
   - Allowed only when the store has `deletedAt` set; otherwise returns **400**.
   - Sets `deletedAt` to `null` and updates `updatedAt`.
   - Does **not** modify `isPublic` or `isVacationMode`.
-
-```
+---
 # 📦 Product Module – Backend Documentation
 ## This module manages the complete product lifecycle including:
 
