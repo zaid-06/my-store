@@ -155,3 +155,173 @@ Designed for reproducible development environments
   - Does **not** modify `isPublic` or `isVacationMode`.
 
 ```
+# 📦 Product Module – Backend Documentation
+## This module manages the complete product lifecycle including:
+
+* Product creation
+* Variant management
+* Category management
+* Media handling
+* Publishing validation
+* Public visibility filtering
+* Soft delete behavior
+
+## 🧭 Product Lifecycle
+A product goes through the following stages:
+```
+Draft → Published → Soft Deleted
+```
+
+### 1️⃣ Draft
+* Default status when product is created
+* Not visible publicly
+* Can be edited freely
+
+### 2️⃣ Published
+* Must satisfy publishing rules
+* Visible in public APIs
+* Must contain variants and media
+
+3️⃣ Soft Deleted
+* deletedAt timestamp is set
+* Product is hidden from all public queries
+* Data remains in database
+* Cannot be published unless restored (if implemented)
+
+## 🚀 Publishing Rules
+### A product can only be published if:
+
+* ✅ Product exists
+* ✅ Product belongs to the store
+* ✅ Product is not soft deleted
+* ✅ At least 1 variant exists
+* ✅ At least 1 media item exists
+
+### If any rule fails:
+```
+publishProduct() returns null
+```
+### Publishing updates:
+``` 
+status = "published"
+```
+## 🧬 Variant Logic
+###Each product:
+* Must have at least 1 variant before publishing
+* Variants belong to a single product
+* Variants contain:
+** name
+** price
+** inventory
+
+### Rules:
+* Cannot add variant to product of another store
+* Price stored as string (decimal safety)
+* Inventory must be numeric
+
+## 🗂 Category Logic
+
+#### Categories are scoped per store.
+
+### Rules:
+* Category name must be unique per store
+* Different stores can reuse same category name
+* Duplicate category in same store throws error
+
+Example:
+```
+Store A → "Clothing" ✅
+Store B → "Clothing" ✅
+Store A → "Clothing" again ❌
+```
+## 🖼 Media Constraints
+Media belongs to a product.
+Publishing requires:
+* At least one media item
+* Media must be linked to productId
+
+### Common fields:
+* url
+* type (image, video, etc.)
+If no media exists → product cannot be published.
+
+## 🌍 Public Visibility Filtering
+
+### Public APIs return products only if:
+1. status = "published"
+2. deletedAt IS NULL
+3. Has at least 1 variant
+4. Has at least 1 media
+
+### This ensures:
+* Draft products are hidden
+* Incomplete products are hidden
+* Soft deleted products are hidden
+
+### Example service logic:
+```
+if (variants.length === 0 || media.length === 0) {
+  return null;
+}
+```
+## 🗑 Soft Delete Behavior
+Products are NOT permanently deleted.
+
+Instead:
+deletedAt = new Date()
+Soft Delete Rules:
+* Only product owner (store) can delete
+*Already deleted product cannot be deleted again
+* Deleted products are excluded from:
+** Published queries
+** Public visibility APIs
+** Standard listing APIs
+
+### Advantages:
+* Audit safe
+* Recovery possible
+* Production-grade data safety
+
+## 🏗 Architecture Design
+### Separation of Concerns
+Layer	           Responsibility
+DB Layer      	 Pure database operations
+Service Layer	   Business rules
+Test Layer	     Integration validation
+
+### This ensures:
+* Clean architecture
+* Testability
+* Scalability
+* Maintainability
+
+## 🧪 Testing Coverage
+### The module includes tests for:
+* Variant creation
+* Publishing validation rules
+* Public visibility filtering
+* Category uniqueness
+* Soft delete behavior
+* Store ownership validation
+
+Tests run sequentially to avoid DB race conditions.
+
+## 🔐 Store Ownership Enforcement
+###All operations validate:
+```
+product.storeId === storeId
+```
+Prevents cross-store data manipulation.
+
+###✅ Module Status
+✔ Product lifecycle implemented
+✔ Publishing rules enforced
+✔ Public filtering secured
+✔ Category uniqueness validated
+✔ Soft delete implemented
+✔ Full test coverage
+
+
+
+
+
