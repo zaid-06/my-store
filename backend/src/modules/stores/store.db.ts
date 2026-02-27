@@ -18,6 +18,7 @@ export const dbGetStoreByUserId = (userId: string) => {
 export const dbGetStoreByUsername = (username: string) => {
   return db.query.stores.findFirst({
     where: eq(stores.username, username),
+    
   });
 };
 

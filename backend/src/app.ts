@@ -8,6 +8,7 @@ import { userRoutes } from "./modules/users/user.routes";
 import { storeRoutes } from "./modules/stores/store.routes";
 import adminRoutes from "./modules/admin/admin.routes";
 import {productRoutes} from "./modules/products/product.routes";
+import {orderRoutes} from "./modules/orders/order.routes";
 
 
 export const app = express();
@@ -32,6 +33,7 @@ app.use("/v1/api/users", userRoutes);
 app.use("/v1/api/stores", storeRoutes);
 app.use("/v1/api/admin", adminRoutes);
 app.use("/v1/api/products", productRoutes);
+app.use("/v1/api/orders", orderRoutes);
 
 
 // ✅ Error handler MUST be last

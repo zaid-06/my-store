@@ -5,7 +5,7 @@ import { fromNodeHeaders } from "better-auth/node";
 import { auth } from "../auth/auth.config";
 
 export const requireAuth = async(req: Request, _res: Response, next: NextFunction) => {
-  // Placeholder user (real auth comes later)
+
   console.log("in requireAuth...")
   const session = await auth.api.getSession({
     headers: fromNodeHeaders(req.headers),
