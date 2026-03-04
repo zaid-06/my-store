@@ -9,6 +9,8 @@ export default defineConfig({
     globals: true,
     include: ["tests/**/*.test.ts"],
     setupFiles: ["tests/setup.ts"],
+    // setupFiles: ["./tests/setup.ts"],
+
 
     // ✅ run tests sequentially
     pool: "forks",
@@ -19,6 +21,8 @@ export default defineConfig({
     },
   },
 });
+
+
 
 
 

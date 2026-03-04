@@ -301,3 +301,36 @@ export const markOrderRefund = async ({
   return updated;
 };
 
+
+
+
+
+
+type ListAdminOrdersInput = {
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+};
+
+export const listAdminOrders = async ({
+  status,
+  startDate,
+  endDate,
+}: ListAdminOrdersInput) => {
+
+  const parsedStartDate = startDate
+    ? new Date(startDate)
+    : undefined;
+
+  const parsedEndDate = endDate
+    ? new Date(endDate)
+    : undefined;
+
+  const orders = await orderDb.findAllOrders({
+    status,
+    startDate: parsedStartDate,
+    endDate: parsedEndDate,
+  });
+
+  return orders;
+};

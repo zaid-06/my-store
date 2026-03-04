@@ -61,6 +61,19 @@ export const getProductsByStore = async (storeId: string) => {
     );
 };
 
+
+export const findProductById = async (productId: string) => {
+   return db
+    .select()
+    .from(products)
+    .where(
+      and(
+        eq(products.id, productId),
+        isNull(products.deletedAt)
+      )
+    );
+};
+
 export const findProductByIdAndStoreId = async ({
   productId,
   storeId,

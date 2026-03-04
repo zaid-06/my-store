@@ -153,6 +153,21 @@ export const updateOrderStatus = async (
 
 
 
+
+
+export const softDeleteOrder = async (orderId: string) => {
+  const [updated] = await db
+    .update(orders)
+    .set({
+      deletedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(orders.id, orderId))
+    .returning();
+
+  return updated;
+};
+
 // export const updateOrderRefund = async (
 //   orderId: string,
 //   refundAmount: number
@@ -188,4 +203,43 @@ export const updateOrderRefund = async (
     .returning();
 
   return updated;
+};  
+
+
+
+
+// import { and, eq, gte, lte, isNull } from "drizzle-orm";
+// import { db } from "@/config/db";
+// import { orders } from "./order.schema";
+
+type AdminOrderFilter = {
+  status?: string;
+  startDate?: Date;
+  endDate?: Date;
 };
+
+export const findAllOrders = async ({
+  status,
+  startDate,
+  endDate,
+}: AdminOrderFilter) => {
+  const conditions = [isNull(orders.deletedAt)];
+
+  if (status) {
+    conditions.push(eq(orders.status, status as any));
+  }
+
+  if (startDate) {
+    conditions.push(gte(orders.createdAt, startDate));
+  }
+
+  if (endDate) {
+    conditions.push(lte(orders.createdAt, endDate));
+  }
+
+  return db.query.orders.findMany({
+    where: and(...conditions),
+    orderBy: (orders, { desc }) => [desc(orders.createdAt)],
+  });
+};
+
