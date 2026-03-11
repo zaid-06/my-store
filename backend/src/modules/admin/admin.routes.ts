@@ -10,6 +10,9 @@ import { listAdminOrdersController,
   adminOverrideOrderStatusController,
   adminSoftDeleteOrderController  
 } from "./admin.order.controller";
+import { listAllDownloadsController } from "../downloads/download.controller";
+
+
 
 const adminRoutes = Router();
 
@@ -31,7 +34,7 @@ adminRoutes.get(
 adminRoutes.patch(
   "/orders/:id/status",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireRole(Role.ADMIN),
   adminOverrideOrderStatusController
 );
 
@@ -40,10 +43,20 @@ adminRoutes.patch(
 adminRoutes.delete(
   "/orders/:id",
   requireAuth,
-  requireRole(Role.CREATOR),
+  // requireRole(Role.CREATOR),//temp creator for checking
+  requireRole(Role.ADMIN),
+
   adminSoftDeleteOrderController
 );
 
+
+
+adminRoutes.get(
+  "/downloads",
+  requireAuth,
+  requireRole(Role.ADMIN),
+  listAllDownloadsController
+);
 
 
 export default adminRoutes;

@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { fromNodeHeaders } from "better-auth/node";
 import * as storeService from "../stores/store.service";
 import * as productService from "./product.service";
@@ -50,7 +50,7 @@ export const createCategoryController = async (
   req: Request,
   res: Response
 ) => {
-  // 1️⃣ Auth
+  // 1 Auth
   const session = await auth.api.getSession({
     headers: fromNodeHeaders(req.headers),
   });
@@ -59,7 +59,7 @@ export const createCategoryController = async (
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  // 2️⃣ Store check
+  // 2 Store check
   const store = await storeService.getStoreByUserId(session.user.id);
   if (!store) {
     return res.status(400).json({
@@ -67,7 +67,7 @@ export const createCategoryController = async (
     });
   }
 
-  // 3️⃣ Validation
+  // 3 Validation
   const parsed = categorySchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
@@ -76,7 +76,7 @@ export const createCategoryController = async (
     });
   }
 
-  // 4️⃣ Business call
+  // 4 Business call
   const category = await productService.createCategory(
     store.id,
     parsed.data.name
@@ -326,7 +326,7 @@ export const updateVariantController = async (
   const productId = req.params.id as string;
   const variantId = req.params.variantId as string;
 
-  // ✅ validate body
+  //  validate body
   const parsed = variantSchema.partial().safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
@@ -416,22 +416,29 @@ export const addMediaController = async (req: Request, res: Response) => {
 
   const productId = req.params.id as string;
 
-  const media = await productService.addMediaToProduct({
-    productId,
-    storeId: store.id,
-    ...parsed.data,
-  });
+   try {
+    const media = await productService.addMediaToProduct({
+      productId ,
+      storeId: store.id,
+      ...parsed.data,
+    });
 
-  if (!media) {
+    if (!media) {
+      return res.status(400).json({
+        error: "Cannot add media (limit reached or product not found)",
+      });
+    }
+
+    return res.status(201).json(media);
+
+  } catch (err: any) {
     return res.status(400).json({
-      error: "Cannot add media (limit reached or product not found)",
+      error: err.message ?? "Failed to add media",
     });
   }
-
-  return res.status(201).json(media);
 };
 
-// Remove Media Controller
+
 
 export const removeMediaController = async (req: Request, res: Response) => {
   const session = await auth.api.getSession({

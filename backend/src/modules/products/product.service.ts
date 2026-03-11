@@ -1,4 +1,5 @@
 
+
 import { ApiError } from "../../shared/api-error";
 import { findProductByIdAndStoreId } from "./product.db";
 import {
@@ -39,6 +40,7 @@ export const createProduct = async (data: {
   title: string;
   description?: string | null;
   isFeatured?: boolean;
+  productType: "PHYSICAL" | "DIGITAL";
 }) => {
   
 
@@ -69,28 +71,7 @@ export const createCategory = async (
   });
 };
 
-// src/modules/products/product.service.ts
-// export const createCategory = async (storeId: string, name: string) => {
-//   const normalizedName = name.trim();
 
-//   const exists = await productDb.findCategoryByStoreAndName(
-//     storeId,
-//     normalizedName
-//   );
-
-//   if (exists) {
-//     throw new ApiError("Category already exists", 400);
-//   }
-
-//   return productDb.insertCategory({
-//     storeId,
-//     name: normalizedName,
-//   });
-// };
-
-
-// get all categories
-// SERVICE
 export const listCategoriesByStore = async (storeId: string) => {
   
 
@@ -159,6 +140,21 @@ export const updateProductByIdForOwner = async ({
     if (variants.some((v) => v.inventory < 0)) {
       throw new Error("Variant inventory cannot be negative");
     }
+    if (product.productType === "DIGITAL") {
+      // const fileMedia = media.filter((m) => m.type === "file");
+      // if (fileMedia.length === 0) {
+      //   throw new Error("Cannot publish digital product without file media");
+      // }
+
+        const hasFile = media.some((m) => m.type === "file");
+
+      if (!hasFile) {
+        
+        throw new Error(
+          'DIGITAL products must have at least 1 media item of type "file"'
+        );
+      }
+    }
   }
 
   // 3️⃣ Update
@@ -224,13 +220,6 @@ export const addVariantToProduct = async ({
     inventory,
   });
 
-  // return variant;
-  // const variant = await productDb.insertVariant({
-  // productId,
-  // name,
-  // price: price.toFixed(2),
-  // inventory,
-// });
 
 if (!variant) return null;
 
@@ -324,7 +313,7 @@ export const addMediaToProduct = async ({
   productId: string;
   storeId: string;
   url: string;
-  type: "image" | "video";
+  type: "image" | "video" | "file";
   position?: number;
 }) => {
   // 1️⃣ Product ownership + not deleted
@@ -332,6 +321,9 @@ export const addMediaToProduct = async ({
   if (!product) return null;
 
   // 2️⃣ Media count rule
+  if (product.productType === "PHYSICAL" && type === "file") {
+    throw new Error("PHYSICAL products cannot have media of type file");
+  }
   const mediaCount = await countProductMedia(productId);
   if (mediaCount >= 10) {
     throw new Error("Maximum 10 media items allowed per product");
@@ -341,7 +333,7 @@ export const addMediaToProduct = async ({
   const media = await insertProductMedia({
     productId,
     url,
-    type,
+    type ,
     position: position ?? mediaCount,
   });
 
@@ -371,10 +363,7 @@ export const removeMediaFromProduct = async ({
   return true;
 };
 
-// `````
-// export const getPublishedProductsByStoreId = async (storeId: string) => {
-//   return productDb.findPublishedProductsByStoreId(storeId);
-// };
+
 
 export const getPublishedProductsByStoreId = async (storeId: string) => {
   const products = await productDb.findPublishedProductsByStoreId(storeId);
@@ -438,7 +427,7 @@ export const getSinglePublishedProductByStoreAndId = async ({
 
 // testing 
 import { db } from "@/config/db";
-// import { products, productVariants } from "./product.schema";
+
 import { eq, and } from "drizzle-orm";
 
 type AddVariantInput = {

@@ -24,6 +24,7 @@ export const  insertProduct = async (data: {
   title: string;
   description?: string | null;
   isFeatured?: boolean;
+  productType: "PHYSICAL" | "DIGITAL";
 }) => {
   const [row] = await db
     .insert(products)
@@ -33,6 +34,7 @@ export const  insertProduct = async (data: {
       description: data.description ?? null,
       status: "draft",
       isFeatured: data.isFeatured ?? false,
+      productType: data.productType,
     })
     .returning();
 
@@ -97,15 +99,7 @@ export const findProductByIdAndStoreId = async ({
 
 
 
-
-
-
-// src/modules/products/product.db.ts
-
-
-/**
- * Get product by id + store (ownership check)
- */
+// Get product by id + store (ownership check)
 export const findProductByIdAndStore = async (
   productId: string,
   storeId: string
@@ -186,11 +180,7 @@ export const softDeleteProductDB = async ({
 
 
 
-// src/modules/products/product.db.ts
-
-/**
- * Check if product exists, belongs to store, and is not deleted
- */
+//  Check if product exists, belongs to store, and is not deleted
 export const findProductForVariantInsert = async ({
   productId,
   storeId,
@@ -343,14 +333,6 @@ export const findProductForMediaAdd = async (
   });
 };
 
-// export const countProductMedia = async (productId: string) => {
-//   const [{ value }] = await db
-//     .select({ value: count() })
-//     .from(productMedia)
-//     .where(eq(productMedia.productId, productId));
-
-//   return value;
-// };
 
 export const countProductMedia = async (productId: string): Promise<number> => {
   const [{ value }] = await db
@@ -360,29 +342,11 @@ export const countProductMedia = async (productId: string): Promise<number> => {
 
   return Number(value ?? 0);
 };
-// export const countProductMedia = async (productId: string) => {
-//   const [{ value }] = await db
-//     .select({ value: count() })
-//     .from(productMedia)
-//     .where(eq(productMedia.productId, productId));
-
-//   return Number(value ?? 0);
-// };
-// src/modules/products/product.db.ts
-
-// export const countProductMedia = async (productId: string): Promise<number> => {
-//   const [{ value }] = await db
-//     .select({ value: count() })
-//     .from(productMedia)
-//     .where(eq(productMedia.productId, productId));
-
-//   return Number(value ?? 0);
-// };
 
 export const insertProductMedia = async (data: {
   productId: string;
   url: string;
-  type: "image" | "video";
+  type: "image" | "video" | "file";
   position: number;
 }) => {
   const [media] = await db
@@ -443,13 +407,6 @@ export const findPublishedProductsByStoreId = async (storeId: string) => {
 
 
 
-
-
-
-
-
-
-
 export const dbGetSinglePublishedProduct = ({
   storeId,
   productId,
@@ -467,16 +424,14 @@ export const dbGetSinglePublishedProduct = ({
   });
 };
 
-/* ========== VARIANTS ========== */
-
+// Variants
 export const dbGetVariantsByProductId = (productId: string) => {
   return db.query.productVariants.findMany({
     where: eq(productVariants.productId, productId),
   });
 };
 
-/* ========== MEDIA ========== */
-
+// Media 
 export const dbGetMediaByProductId = (productId: string) => {
   return db.query.productMedia.findMany({
     where: eq(productMedia.productId, productId),
@@ -484,8 +439,6 @@ export const dbGetMediaByProductId = (productId: string) => {
   });
 };
 
-// import { db } from "../../config/db";
-// import { and, eq } from "drizzle-orm";
 
 
 // 🔎 Read
@@ -515,13 +468,7 @@ export const insertCategory = async (data: {
 };
 
 
-
-
-
-
-/**
- * Find product for publishing (ownership + not deleted)
- */
+// Find product for publishing (ownership + not deleted)
 export const findProductForPublish = async ({
   productId,
   storeId,
@@ -538,9 +485,8 @@ export const findProductForPublish = async ({
   });
 };
 
-/**
- * Count product variants
- */
+// Count product variants
+
 export const countProductVariants = async (productId: string) => {
   const variants = await db.query.productVariants.findMany({
     where: eq(productVariants.productId, productId),
@@ -551,9 +497,8 @@ export const countProductVariants = async (productId: string) => {
 
 
 
-/**
- * Update product status
- */
+//  * Update product status
+// 
 export const updateProductStatus = async ({
   productId,
   status,

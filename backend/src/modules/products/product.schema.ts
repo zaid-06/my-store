@@ -14,16 +14,16 @@ import { decimal } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { stores } from "../stores/store.schema";
 
-// ============ Enums (Drizzle) ============
+// 
 export const productStatusEnum = pgEnum("product_status", [
   "draft",
   "published",
   "archived",
 ]);
 
-export const mediaTypeEnum = pgEnum("media_type", ["image", "video"]);
-
-// ============ Drizzle tables ============
+export const mediaTypeEnum = pgEnum("media_type", ["image", "video", "file"]);
+export const productTypeEnum = pgEnum("product_type", ["PHYSICAL", "DIGITAL"]);
+// Drizzle tables 
 
 export const products = pgTable("products", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -33,6 +33,7 @@ export const products = pgTable("products", {
   title: varchar("title", { length: 120 }).notNull(),
   description: text("description"),
   status: productStatusEnum("status").default("draft").notNull(),
+  productType: productTypeEnum("product_type").default("PHYSICAL").notNull(),
   isFeatured: boolean("is_featured").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -87,11 +88,12 @@ export const productMedia = pgTable("product_media", {
   position: integer("position").notNull().default(0),
 });
 
-// ============ Zod validation schemas ============
+// Zod validation schemas 
 
 export const productSchema = z.object({
   title: z.string().min(1, "Title is required").max(120),
   description: z.string().max(2000).optional(),
+  productType: z.enum(["PHYSICAL", "DIGITAL"]).default("PHYSICAL"),
   // status: z.enum(["draft", "published", "archived"]),
   isFeatured: z.boolean(),
 });
@@ -114,7 +116,7 @@ export type CategoryInput = z.infer<typeof categorySchema>;
 
 export const mediaSchema = z.object({
   url: z.string().url("Must be a valid URL"),
-  type: z.enum(["image", "video"]),
+  type: z.enum(["image", "video", "file"]),
   position: z.number().int().min(0).optional(),
 });
 

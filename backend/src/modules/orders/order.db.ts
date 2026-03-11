@@ -138,18 +138,97 @@ export const findOrderByIdAndStore = async (
   });
 };
 
+// export const updateOrderStatus = async (
+//   orderId: string,
+//   status:  "PENDING" | "PAID" | "SHIPPED" | "DELIVERED" | "RETURNED" | "CANCELLED"
+// ) => {
+//   const [updated] = await db
+//     .update(orders)
+//     .set({ status, updatedAt: new Date() })
+//     .where(eq(orders.id, orderId))
+//     .returning();
+
+//   return updated;
+// };
+
+
+
+// export const updateOrderStatus = async (
+//   orderId: string,
+//   status: "PENDING" | "PAID" | "SHIPPED" | "DELIVERED" | "RETURNED" | "CANCELLED"
+// ) => {
+
+//   // 1️⃣ update status
+//   await db
+//     .update(orders)
+//     .set({ status, updatedAt: new Date() })
+//     .where(eq(orders.id, orderId));
+
+//   // 2️⃣ fetch order with product relation
+//   const updatedOrder = await db.query.orders.findFirst({
+//     where: eq(orders.id, orderId),
+//     with: {
+//       product: true
+//     }
+//   });
+
+//   return updatedOrder;
+// };
+
+import { createDigitalDownload } from "../downloads/download.service";
+
 export const updateOrderStatus = async (
   orderId: string,
-  status:  "PENDING" | "PAID" | "SHIPPED" | "DELIVERED" | "RETURNED" | "CANCELLED"
+  status: "PENDING" | "PAID" | "SHIPPED" | "DELIVERED" | "RETURNED" | "CANCELLED"
 ) => {
-  const [updated] = await db
+
+  // 1️⃣ update order
+  await db
     .update(orders)
     .set({ status, updatedAt: new Date() })
-    .where(eq(orders.id, orderId))
-    .returning();
+    .where(eq(orders.id, orderId));
 
-  return updated;
+  // 2️⃣ fetch order with product relation
+  const updatedOrder = await db.query.orders.findFirst({
+    where: eq(orders.id, orderId),
+    with: {
+      product: true
+    }
+  });
+
+  if (!updatedOrder) {
+    throw new Error("Order not found");
+  }
+
+  /*
+  Business Rules
+  */
+
+  // ONLINE payment
+  if (
+    updatedOrder.product?.productType === "DIGITAL" &&
+    updatedOrder.paymentMethod === "ONLINE" &&
+    updatedOrder.status === "PAID"
+  ) {
+
+    await createDigitalDownload(
+      updatedOrder.id,
+      updatedOrder.productId,
+      updatedOrder.variantId
+    );
+  }
+
+ 
+
+  return updatedOrder;
 };
+
+
+
+
+
+
+
 
 
 

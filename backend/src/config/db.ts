@@ -7,6 +7,7 @@ import * as storeSchema from "../modules/stores/store.schema";
 
 import * as productSchema from "../modules/products/product.schema";
 import * as orderSchema from "../modules/orders/order.schema";
+import * as downloadSchema from "../modules/downloads/download.schema";
 
 
 
@@ -20,6 +21,7 @@ export const db = drizzle(pool, {
     ...userSchema,
     ...storeSchema, 
     ...productSchema,
-    ...orderSchema
+    ...orderSchema,
+    ...downloadSchema
   },
 });

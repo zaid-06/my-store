@@ -70,11 +70,9 @@ export const orders = pgTable("orders", {
   buyerId: uuid("buyer_id")
     .references(() => buyers.id, { onDelete: "set null" }), // nullable (guest support)
 
+  
+    //  Buyer Snapshot (Freeze Data)
 
-
-  /* -----------------------------
-     Buyer Snapshot (Freeze Data)
-  ------------------------------ */
 
   buyerName: varchar("buyer_name", { length: 255 }).notNull(),
   buyerEmail: varchar("buyer_email", { length: 255 }).notNull(),

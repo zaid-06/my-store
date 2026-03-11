@@ -47,6 +47,7 @@ export const createOrder = async (input: CreateOrderInput) => {
   if (store.isVacationMode) {
     throw new ApiError("Store is in vacation mode", 400);
   }
+  
 
   // Variant Validation
   const variant = await orderDb.findVariantForOrder(
@@ -93,6 +94,8 @@ export const createOrder = async (input: CreateOrderInput) => {
     paymentMethod,
     status: "PENDING",
   });
+
+
 
   return {
     orderId: order.id,
@@ -223,6 +226,16 @@ export const updateCreatorOrderStatus = async ({
     newStatus as any
 
   );
+  // if (
+  //   updatedOrder?.product?.productType === "DIGITAL" &&
+  //   updatedOrder.status === "PAID"
+  // ) {
+
+
+  //   // create digital download
+  // }
+      
+  
 
   return updatedOrder;
 };

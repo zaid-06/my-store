@@ -7,7 +7,8 @@ export default defineConfig({
     "./auth-schema.ts", 
     "./src/modules/stores/store.schema.ts",
     "./src/modules/products/product.schema.ts", 
-    "./src/modules/orders/order.schema.ts"
+    "./src/modules/orders/order.schema.ts",
+    "./src/modules/downloads/download.schema.ts"
   ],
 
   dialect: "postgresql",

@@ -13,6 +13,6 @@ export function errorHandler(err: any, req: any, res: any, next: any) {
   return res.status(500).json({
     success: false,
     data: null,
-    error: { message: "Internal server error" },
+    error: {message: "Internal server error"}
   });
 }

@@ -18,6 +18,7 @@ import {
   removeMediaController,
   // listPublishedProductsByStoreController,
 } from "./product.controller";
+import { listProductDownloadsController } from "../downloads/download.controller";
 
 export const productRoutes = Router();
 
@@ -115,15 +116,14 @@ productRoutes.delete(
   removeMediaController
 );
 
-// import { listPublishedProductsByStoreController } from "./product.controller";
 
-// PUBLIC – no auth
-// console.log("username..........................");
-
-// productRoutes.get(
-//   "/stores/:username/products",
-//   listPublishedProductsByStoreController
-// );
+productRoutes.get(
+  "/:id/downloads",
+  requireAuth,
+  requireRole(Role.CREATOR),
+  listProductDownloadsController
+);
 
 
-console.log("username.####################");
+
+// console.log("username.####################");
