@@ -325,3 +325,216 @@ Prevents cross-store data manipulation.
 
 
 
+
+# Digital Product Delivery System
+## Overview
+Task‑5 introduces secure delivery for digital products.
+This system allows customers to download digital files only after successful payment, using secure tokenized download links.
+
+### The implementation ensures:
+
+* Secure download access
+* Token‑based validation
+* Download tracking
+* Creator visibility
+* Protection against link abuse
+ This functionality applies only to DIGITAL products.
+
+## Digital vs Physical Products
+Products now support two types:
+```
+productType: PHYSICAL | DIGITAL
+```
+### PHYSICAL Products
+Delivered through shipping
+No digital downloads
+Cannot attach media of type file
+
+### DIGITAL Products
+* Delivered through secure download
+* Must contain at least one media item with type file
+* Download access is created after order becomes PAID
+
+Validation rule:
+```
+If productType = DIGITAL
+→ product must have at least one media item where type = "file"
+```
+This rule is enforced when publishing the product.
+
+
+## Token Validation Logic
+Every digital download uses a secure token.
+
+Example download endpoint:
+```
+GET /v1/api/download/:token
+```
+Token validation steps:
+
+1️⃣ Validate token exists
+```
+digital_downloads.token = token
+```
+If not found:
+```
+Invalid download token
+```
+2️⃣ Validate order status
+Order must be:
+```
+status = PAID
+```
+Invalid states:
+```
+PENDING
+CANCELLED
+```
+Errors:
+```
+Order not paid
+Order cancelled
+```
+3️⃣ Validate expiry
+```
+if expiresAt < current time
+→ Download expired
+```
+4️⃣ Validate download limit
+```
+if downloadCount >= maxDownloads
+→ Download limit reached
+```
+5️⃣ Fetch file
+File is retrieved from:
+```
+product_media
+where type = "file"
+```
+6️⃣ Increment download count
+```
+downloadCount += 1
+```
+7️⃣ Log download activity
+
+A record is stored in:
+```
+download_logs
+```
+Fields recorded:
+```
+digitalDownloadId
+ipAddress
+userAgent
+createdAt
+```
+
+## Download Lifecycle
+The lifecycle of a digital download:
+
+1️⃣ Order Creation
+When a customer creates an order:
+```
+productType = DIGITAL
+``` 
+Behavior depends on payment method.
+
+Online Payment
+If:
+```
+paymentMethod = ONLINE
+status = PAID
+```
+System creates:
+```
+digital_downloads record
+```
+COD (Cash on Delivery)
+Initial order status:
+```
+PENDING
+```
+Download record is created only when status becomes PAID.
+
+2️⃣ Download Access
+Customer receives download link:
+```
+GET /v1/api/download/:token
+```
+System validates token and order status.
+
+3️⃣ Download Tracking
+Each download attempt:
+```
+increment downloadCount
+insert record in download_logs
+```
+4️⃣ Creator Visibility
+Creators can view download activity:
+```
+GET /v1/api/products/:id/downloads
+```
+Returned data:
+```
+orderId
+downloadCount
+createdAt
+```
+Only downloads belonging to the creator's store are visible.
+---
+5️⃣ Admin Visibility
+Admins can view all digital downloads:
+
+GET /v1/api/admin/downloads
+## Security Decisions
+No Direct File Path Exposure
+Internal storage paths and database IDs are never exposed. Only the validated file URL is returned.
+
+Download Logging
+Each download attempt records:
+
+* IP Address
+* User Agent
+* Timestamp
+
+This helps detect misuse.
+
+Order Validation
+Downloads are allowed only when the order status is PAID.
+
+### Token Generation
+Tokens are generated using Node.js crypto:
+```
+crypto.randomBytes(32).toString("hex")
+```
+Properties:
+* ≥ 64 characters
+* Cryptographically secure
+* Unpredictable
+
+Token Hashing (Optional)
+Tokens can be stored as hashed values in the database.
+Example:
+```
+tokenHash = sha256(token)
+```
+Benefits:
+* Prevents token leakage if the database is compromised
+* Protects download links
+* Adds an additional security layer
+
+Flow:
+```
+generate token → hash token → store hash → validate during download
+```
+
+### Testing
+Implemented unit tests for:
+* Token Generation – verifies secure and correct token format
+* Download Access Validation – invalid token, unpaid order,cancelled order
+* PAID Status Enforcement – blocks downloads for unpaid orders
+* Download Count Increment – verifies count update and logging
+* Expiry Logic – blocks expired download links
+* Creator Access Isolation – prevents creators from accessing other stores' downloads
+
+
