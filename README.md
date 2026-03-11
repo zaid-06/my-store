@@ -322,9 +322,7 @@ Prevents cross-store data manipulation.
 ✔ Full test coverage
 
 
-
-
-
+---
 
 # Digital Product Delivery System
 ## Overview
