@@ -20,10 +20,11 @@
     next();
   }
 
-  /**
-   * Require specific role
-   */
+  
+  //  * Require specific role
+   
   export function requireRole(role: Role) {
+    // console.log("current user role: .......................", req.user?.role)
     return (req: Request, _res: Response, next: NextFunction) => {
       if (req.user?.role !== role) {
         throw new ApiError("Forbidden", 403);

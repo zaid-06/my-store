@@ -226,16 +226,6 @@ export const updateCreatorOrderStatus = async ({
     newStatus as any
 
   );
-  // if (
-  //   updatedOrder?.product?.productType === "DIGITAL" &&
-  //   updatedOrder.status === "PAID"
-  // ) {
-
-
-  //   // create digital download
-  // }
-      
-  
 
   return updatedOrder;
 };
@@ -257,17 +247,7 @@ export const markOrderRefund = async ({
   refundAmount,
 }: MarkRefundInput) => {
 
-  /* =========================================
-     1️⃣ Validate Refund Amount
-  ========================================= */
 
-  if (refundAmount <= 0) {
-    throw new ApiError("Refund amount must be greater than 0", 400);
-  }
-
-  /* =========================================
-     2️⃣ Fetch Order
-  ========================================= */
 
   let order;
 
@@ -291,9 +271,7 @@ export const markOrderRefund = async ({
     throw new ApiError("Order not found", 404);
   }
 
-  /* =========================================
-     3️⃣ Refund Validation
-  ========================================= */
+
 
   if (refundAmount > Number(order.totalAmount)) {
     throw new ApiError(
@@ -302,9 +280,6 @@ export const markOrderRefund = async ({
     );
   }
 
-  /* =========================================
-     4️⃣ Update Refund Flag
-  ========================================= */
 
   const updated = await orderDb.updateOrderRefund(
     orderId,
@@ -313,9 +288,6 @@ export const markOrderRefund = async ({
 
   return updated;
 };
-
-
-
 
 
 

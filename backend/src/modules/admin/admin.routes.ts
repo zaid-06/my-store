@@ -11,8 +11,12 @@ import { listAdminOrdersController,
   adminSoftDeleteOrderController  
 } from "./admin.order.controller";
 import { listAllDownloadsController } from "../downloads/download.controller";
-
-
+import {
+  resolveDispute ,
+  listAdminConversations,
+  getAdminConversation,
+  softDeleteMessage,
+} from "../messages/message.controller";
 
 const adminRoutes = Router();
 
@@ -57,6 +61,31 @@ adminRoutes.get(
   requireRole(Role.ADMIN),
   listAllDownloadsController
 );
+adminRoutes.patch(
+  "/messages/:conversationId/resolve",
+  requireAuth,
+  requireRole(Role.ADMIN),
+  resolveDispute
+);
 
+adminRoutes.get(
+  "/messages",
+  requireAuth,
+  requireRole(Role.ADMIN),
+  listAdminConversations
+);
 
+adminRoutes.get(
+  "/messages/:conversationId",
+  requireAuth,
+  requireRole(Role.ADMIN),
+  getAdminConversation
+);
+
+adminRoutes.delete(
+  "/messages/:messageId",
+  requireAuth,
+  requireRole(Role.ADMIN),
+  softDeleteMessage
+);
 export default adminRoutes;

@@ -10,10 +10,8 @@ import adminRoutes from "./modules/admin/admin.routes";
 import {productRoutes} from "./modules/products/product.routes";
 import {orderRoutes} from "./modules/orders/order.routes";
 
-
-
 import downloadRoutes from "./modules/downloads/download.routes";
-
+import messageRoutes from "./modules/messages/message.routes";
 
 
 export const app = express();
@@ -40,6 +38,7 @@ app.use("/v1/api/admin", adminRoutes);
 app.use("/v1/api/products", productRoutes);
 app.use("/v1/api/orders", orderRoutes);
 app.use("/v1/api/download", downloadRoutes);
+app.use("/v1/api/messages", messageRoutes);
 
 
 // ✅ Error handler MUST be last

@@ -4,9 +4,9 @@ import { auth } from "./auth.config";
 
 const router = Router();
 
-/**
- * Health check
- */
+
+//  * Health check
+ 
 router.get("/health", (_req, res) => {
   res.json({
     success: true,
@@ -15,9 +15,8 @@ router.get("/health", (_req, res) => {
   });
 });
 
-/**
- * BetterAuth handler (must be LAST)
- */
+//  * BetterAuth handler (must be LAST)
+ 
 router.all("/{*any}", toNodeHandler(auth));
 
 export default router;

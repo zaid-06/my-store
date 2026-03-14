@@ -504,14 +504,14 @@ export const getSinglePublishedProductController = async (
 ) => {
   const { username, productId } = req.params;
 
-  // 1️⃣ Store lookup (controller responsibility)
+  // Store lookup (controller responsibility)
   const store = await storeService.getStoreByUsername(username as string);
 
   if (!store || !store.isPublic) {
     return res.status(404).json({ error: "Store not found" });
   }
 
-  // 2️⃣ Call service with IDs only
+  //  Call service with IDs only
   const product =
     await productService.getSinglePublishedProductByStoreAndId({
       storeId: store.id,

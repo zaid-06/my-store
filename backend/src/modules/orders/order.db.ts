@@ -1,20 +1,9 @@
-// import { db } from "@/config/db";
 import { and, eq, isNull, gte, lte } from "drizzle-orm";
-// import { products } from "@/modules/products/product.schema";
-// import { productVariants } from "@/modules/products/product.schema";
 import { stores } from "../stores/store.schema";
 import { buyers} from "./order.schema";
 import {  orders } from "./order.schema";
-
-
-// import { and, eq, gte, lte, isNull } from "drizzle-orm";
-// import { orders } from "./order.schema";
 import { db } from "../../config/db";
-// import { and, eq, isNull ,count } from "drizzle-orm";
 import { products, productVariants, productMedia } from "../products/product.schema";
-// import { categories } from "./product.schema";
-
-// PRODUCT
 
 
 export const findPublishedProductForOrder = async (productId: string) => {
@@ -138,42 +127,8 @@ export const findOrderByIdAndStore = async (
   });
 };
 
-// export const updateOrderStatus = async (
-//   orderId: string,
-//   status:  "PENDING" | "PAID" | "SHIPPED" | "DELIVERED" | "RETURNED" | "CANCELLED"
-// ) => {
-//   const [updated] = await db
-//     .update(orders)
-//     .set({ status, updatedAt: new Date() })
-//     .where(eq(orders.id, orderId))
-//     .returning();
-
-//   return updated;
-// };
 
 
-
-// export const updateOrderStatus = async (
-//   orderId: string,
-//   status: "PENDING" | "PAID" | "SHIPPED" | "DELIVERED" | "RETURNED" | "CANCELLED"
-// ) => {
-
-//   // 1️⃣ update status
-//   await db
-//     .update(orders)
-//     .set({ status, updatedAt: new Date() })
-//     .where(eq(orders.id, orderId));
-
-//   // 2️⃣ fetch order with product relation
-//   const updatedOrder = await db.query.orders.findFirst({
-//     where: eq(orders.id, orderId),
-//     with: {
-//       product: true
-//     }
-//   });
-
-//   return updatedOrder;
-// };
 
 import { createDigitalDownload } from "../downloads/download.service";
 
@@ -182,13 +137,13 @@ export const updateOrderStatus = async (
   status: "PENDING" | "PAID" | "SHIPPED" | "DELIVERED" | "RETURNED" | "CANCELLED"
 ) => {
 
-  // 1️⃣ update order
+  //  update order
   await db
     .update(orders)
     .set({ status, updatedAt: new Date() })
     .where(eq(orders.id, orderId));
 
-  // 2️⃣ fetch order with product relation
+  //  fetch order with product relation
   const updatedOrder = await db.query.orders.findFirst({
     where: eq(orders.id, orderId),
     with: {
@@ -200,9 +155,6 @@ export const updateOrderStatus = async (
     throw new Error("Order not found");
   }
 
-  /*
-  Business Rules
-  */
 
   // ONLINE payment
   if (
@@ -224,16 +176,6 @@ export const updateOrderStatus = async (
 };
 
 
-
-
-
-
-
-
-
-
-
-
 export const softDeleteOrder = async (orderId: string) => {
   const [updated] = await db
     .update(orders)
@@ -246,23 +188,6 @@ export const softDeleteOrder = async (orderId: string) => {
 
   return updated;
 };
-
-// export const updateOrderRefund = async (
-//   orderId: string,
-//   refundAmount: number
-// ) => {
-//   const [updated] = await db
-//     .update(orders)
-//     .set({
-//       isRefunded: true,
-//       refundAmount ,
-//       updatedAt: new Date(),
-//     })
-//     .where(eq(orders.id, orderId))
-//     .returning();
-
-//   return updated;
-// };
 
 export const updateOrderRefund = async (
   orderId: string,
@@ -283,13 +208,6 @@ export const updateOrderRefund = async (
 
   return updated;
 };  
-
-
-
-
-// import { and, eq, gte, lte, isNull } from "drizzle-orm";
-// import { db } from "@/config/db";
-// import { orders } from "./order.schema";
 
 type AdminOrderFilter = {
   status?: string;

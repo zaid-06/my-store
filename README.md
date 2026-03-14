@@ -535,4 +535,59 @@ Implemented unit tests for:
 * Expiry Logic – blocks expired download links
 * Creator Access Isolation – prevents creators from accessing other stores' downloads
 
+---
+# Messaging & Dispute System
+## Conversation Lifecycle
+1. Buyer sends a message for an order.
+2. If no conversation exists for that order, the system automatically creates one (lazy creation).
+3. Messages are then stored under that conversation.
+4. Creator and buyer communicate through the conversation.
+5. Buyer can escalate the conversation to a dispute if needed.
+6. Admin can resolve the dispute when the issue is handled.
+
+## Guest Verification Logic
+Buyers are treated as guests, so verification is required before sending or reading messages.
+
+Verification rules:
+* email must match order.buyerEmail
+* phone must match order.buyerPhone
+
+If either does not match, the request is rejected with:
+```
+Buyer verification failed
+```
+This prevents unauthorized users from accessing another buyer’s order messages.
+
+## Dispute System Behavior
+The dispute system allows escalation when a buyer is not satisfied.
+
+Rules:
+* A buyer can escalate a conversation to dispute.
+* A conversation cannot be disputed twice.
+* Only admin can resolve disputes.
+* Admin resolution removes the dispute flag and marks the issue as handled.
+
+## Isolation Rules (Access Control)
+Strict access rules are enforced:
+
+Creator
+  * Can only see conversations belonging to their own store.
+Buyer
+  * Can only access messages for their own order (via email + phone verification).
+Admin
+  * Has full visibility across all conversations and stores.
+These rules ensure data privacy and store isolation.
+
+## Why Real‑Time Messaging Is Not Used
+Real‑time communication (WebSockets) was intentionally avoided to keep the system simple and reliable for this stage.
+
+Reasons:
+* Messaging is order‑based support, not live chat.
+* Polling via API is sufficient.
+* Reduces infrastructure complexity.
+* Easier testing and debugging.
+
+Real‑time features can be added later if needed.
+
+
 

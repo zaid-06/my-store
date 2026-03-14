@@ -8,6 +8,7 @@ import * as storeSchema from "../modules/stores/store.schema";
 import * as productSchema from "../modules/products/product.schema";
 import * as orderSchema from "../modules/orders/order.schema";
 import * as downloadSchema from "../modules/downloads/download.schema";
+import * as messageSchema from "../modules/messages/message.schema";
 
 
 
@@ -22,6 +23,7 @@ export const db = drizzle(pool, {
     ...storeSchema, 
     ...productSchema,
     ...orderSchema,
-    ...downloadSchema
+    ...downloadSchema,
+    ...messageSchema
   },
 });

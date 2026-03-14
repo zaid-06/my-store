@@ -13,7 +13,9 @@ export const dbGetPublishedProductsByStoreId = (storeId: string) => {
         isNull(p.deletedAt)
       ),
   });
-};
+}; 
+
+
 
 
 

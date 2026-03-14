@@ -52,7 +52,7 @@ export const createCategory = async (
   storeId: string,
   name: string
 ) => {
-  // 1️⃣ Business rule: no duplicate category
+  //  Business rule: no duplicate category
   const exists = await productDb.findCategoryByStoreAndName(
     storeId,
     name
@@ -64,7 +64,7 @@ export const createCategory = async (
     throw new ApiError("Category already exists", 400);
   }
 
-  // 2️⃣ Create
+  //  Create
   return productDb.insertCategory({
     storeId,
     name,
@@ -120,11 +120,11 @@ export const updateProductByIdForOwner = async ({
   storeId: string;
   data: UpdateProductInput;
 }) => {
-  // 1️⃣ Ownership + existence check
+  //  Ownership + existence check
   const product = await findProductByIdAndStore(productId, storeId);
   if (!product) return null;
 
-  // 2️⃣ Publishing rules
+  //  Publishing rules
   if (data.status === "published") {
     const variants = await findVariantsByProductId(productId);
     const media = await findMediaByProductId(productId);
@@ -157,7 +157,7 @@ export const updateProductByIdForOwner = async ({
     }
   }
 
-  // 3️⃣ Update
+  //  Update
   return await updateProductById(productId, data);
 };
 
@@ -171,7 +171,7 @@ export const softDeleteProduct = async ({
   productId: string;
   storeId: string;
 }) => {
-   // 1️⃣ Check ownership
+   //  Check ownership
   // const product = await findProductByIdAndStore({
   //   productId,
   //   storeId,
@@ -179,7 +179,7 @@ export const softDeleteProduct = async ({
 
   // if (!product) return null;
 
-  // // 2️⃣ Already deleted
+  // //  Already deleted
   // if (product.deletedAt) return null;
   return await softDeleteProductDB({ productId, storeId });
 };
@@ -202,7 +202,7 @@ export const addVariantToProduct = async ({
   price: number;
   inventory: number;
 }) => {
-  // 1️⃣ Product ownership & existence check
+  //  Product ownership & existence check
   const product = await productDb.findProductForVariantInsert({
     productId,
     storeId,
@@ -212,7 +212,7 @@ export const addVariantToProduct = async ({
     return null;
   }
 
-  // 2️⃣ Insert variant
+  //  Insert variant
   const variant = await productDb.insertVariant({
     productId,
     name,
@@ -249,7 +249,7 @@ export const updateVariant = async ({
   price?: number;
   inventory?: number;
 }) => {
-  // 1️⃣ Check product ownership
+  //  Check product ownership
   const product = await findProductForVariantUpdate({
     productId,
     storeId,
@@ -259,7 +259,7 @@ export const updateVariant = async ({
     return null; // controller will return 404
   }
 
-  // 2️⃣ Update variant
+  //  Update variant
   const updatedVariant = await updateVariantById({
     productId,
     variantId,
@@ -281,20 +281,20 @@ export const deleteVariant = async ({
   variantId: string;
   storeId: string;
 }) => {
-  // 1️⃣ Product ownership check
+  //  Product ownership check
   const product = await findProductForVariantDelete(productId, storeId);
   if (!product) return "NOT_FOUND";
 
-  // 2️⃣ Variant count
+  // Variant count
   const variants = await getVariantsByProductId(productId);
   const isLastVariant = variants.length === 1;
 
-  // 3️⃣ Business rule
+  //  Business rule
   if (product.status === "published" && isLastVariant) {
     return "LAST_VARIANT_PUBLISHED";
   }
 
-  // 4️⃣ Delete variant
+  //  Delete variant
   await deleteVariantById(productId, variantId);
 
   return "DELETED";
@@ -316,11 +316,11 @@ export const addMediaToProduct = async ({
   type: "image" | "video" | "file";
   position?: number;
 }) => {
-  // 1️⃣ Product ownership + not deleted
+  //  Product ownership + not deleted
   const product = await findProductForMediaAdd(productId, storeId);
   if (!product) return null;
 
-  // 2️⃣ Media count rule
+  //  Media count rule
   if (product.productType === "PHYSICAL" && type === "file") {
     throw new Error("PHYSICAL products cannot have media of type file");
   }
@@ -329,7 +329,7 @@ export const addMediaToProduct = async ({
     throw new Error("Maximum 10 media items allowed per product");
   }
 
-  // 3️⃣ Insert media
+  //  Insert media
   const media = await insertProductMedia({
     productId,
     url,
@@ -352,11 +352,11 @@ export const removeMediaFromProduct = async ({
   mediaId: string;
   storeId: string;
 }) => {
-  // 1️⃣ Product ownership + not deleted
+  //  Product ownership + not deleted
   const product = await findProductForMediaRemoval(productId, storeId);
   if (!product) return false;
 
-  // 2️⃣ Delete media
+  // Delete media
   const result = await deleteProductMedia(productId, mediaId);
   if (result.length === 0) return false;
 
@@ -397,7 +397,7 @@ export const getSinglePublishedProductByStoreAndId = async ({
   storeId: string;
   productId: string;
 }) => {
-  // 1️⃣ Product
+  //  Product
   const product = await dbGetSinglePublishedProduct({
     storeId,
     productId,
@@ -405,13 +405,13 @@ export const getSinglePublishedProductByStoreAndId = async ({
 
   if (!product) return null;
 
-  // 2️⃣ Relations
+  //  Relations
   const [variants, media] = await Promise.all([
     dbGetVariantsByProductId(product.id),
     dbGetMediaByProductId(product.id),
   ]);
 
-  // ✅ PUBLIC VISIBILITY RULE
+  //PBLIC VISIBILITY RULE
   if (variants.length === 0 || media.length === 0) {
     return null;
   }
@@ -440,12 +440,6 @@ type AddVariantInput = {
 
 
 
-
-
-
-/**
- * Publish product with validation rules
- */
 export const publishProduct = async ({
   productId,
   storeId,
@@ -453,7 +447,7 @@ export const publishProduct = async ({
   productId: string;
   storeId: string;
 }) => {
-  // 1️⃣ ownership + existence
+  //  ownership + existence
   const product = await productDb.findProductForPublish({
     productId,
     storeId,
@@ -461,15 +455,15 @@ export const publishProduct = async ({
 
   if (!product) return null;
 
-  // 2️⃣ must have at least 1 variant
+  //  must have at least 1 variant
   const variantCount = await productDb.countProductVariants(productId);
   if (variantCount === 0) return null;
 
-  // 3️⃣ must have at least 1 media
+  //  must have at least 1 media
   const mediaCount = await productDb.countProductMedia(productId);
   if (mediaCount === 0) return null;
 
-  // 4️⃣ update status
+  //  update status
   return await productDb.updateProductStatus({
     productId,
     status: "published",

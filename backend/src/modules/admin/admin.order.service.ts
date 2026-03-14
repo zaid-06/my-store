@@ -42,14 +42,14 @@ export const adminOverrideOrderStatus = async ({
   status,
 }: AdminOverrideStatusInput) => {
 
-  // 1️⃣ Check order exists
+  //  Check order exists
   const order = await orderDb.findOrderById(orderId);
 
   if (!order) {
     throw new ApiError("Order not found", 404);
   }
 
-  // 2️⃣ Direct update (no transition validation)
+  // Direct update (no transition validation)
   const updated = await orderDb.updateOrderStatus(
     orderId,
     status as any
@@ -62,14 +62,14 @@ export const adminOverrideOrderStatus = async ({
 
 export const adminSoftDeleteOrder = async (orderId: string) => {
 
-  // 1️⃣ Check order exists
+  //  Check order exists
   const order = await orderDb.findOrderById(orderId);
 
   if (!order) {
     throw new ApiError("Order not found", 404);
   }
 
-  // 2️⃣ Soft delete
+  //  Soft delete
   const deleted = await orderDb.softDeleteOrder(orderId);
 
   return deleted;

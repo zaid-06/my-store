@@ -3,9 +3,7 @@ import { fromNodeHeaders } from "better-auth/node";
 import * as storeService from "./store.service";
 import { auth } from "../auth/auth.config";
 
-/**
- * Controller to create a new store for the authenticated user
- */
+//  * Controller to create a new store for the authenticated user
 export const createStoreController = async (req: Request, res: Response) => {
   console.log("in createStoreController...")
   const session = await auth.api.getSession({
@@ -41,9 +39,7 @@ export const createStoreController = async (req: Request, res: Response) => {
 
 
 
-/**
- * Controller to get the authenticated user's store
- */
+//  * Controller to get the authenticated user's store
 export const getMyStoreController = async (req: Request, res: Response) => {
   console.log("in getMyStoreController...............")
   const session = await auth.api.getSession({
@@ -58,9 +54,7 @@ export const getMyStoreController = async (req: Request, res: Response) => {
   return res.json(store);
 };
 
-/**
- * Controller to get a public store by username
- */
+//  * Controller to get a public store by username
 export const getPublicStoreController = async (
   req: Request<{ username: string }>,
   res: Response
@@ -133,10 +127,7 @@ export const updateStoreController = async (req: Request, res: Response) => {
   return res.json(store ?? existingStore);
 };
 
-/**
- * Controller to soft-delete the authenticated user's store
- * Sets deletedAt; username stays reserved; store is hidden from public.
- */
+
 export const deleteMyStoreController = async (req: Request, res: Response) => {
   const session = await auth.api.getSession({
     headers: fromNodeHeaders(req.headers),

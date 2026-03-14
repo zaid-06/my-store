@@ -12,5 +12,5 @@ COPY . .
 
 EXPOSE 5000
 
-# 🔥 WAIT → MIGRATE → START
+#  WAIT → MIGRATE → START
 CMD ["sh", "-c", "./wait-for-postgres.sh && pnpm db:migrate && pnpm dev"]
