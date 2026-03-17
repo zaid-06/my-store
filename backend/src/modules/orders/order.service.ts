@@ -2,7 +2,7 @@
 import { ApiError } from "../../shared/api-error";
 import * as orderDb from "./order.db";
 import { dbGetStoreByUserId } from "../stores/store.db"; 
-
+import { createPayoutForOrderService } from "../payouts/payout.service";
 type CreateOrderInput = {
   productId: string;
   variantId: string;
@@ -13,7 +13,7 @@ type CreateOrderInput = {
   shippingAddress: any;
   paymentMethod: "ONLINE" | "COD";
 };
-
+import { adjustPayoutAfterRefund } from "../payouts/payout.service";
 export const createOrder = async (input: CreateOrderInput) => {
   const {
     productId,
@@ -227,6 +227,14 @@ export const updateCreatorOrderStatus = async ({
 
   );
 
+  
+  /*
+   Trigger payout creation
+  */
+  if (newStatus === "DELIVERED") {
+    await createPayoutForOrderService(orderId);
+  }
+
   return updatedOrder;
 };
 
@@ -247,11 +255,10 @@ export const markOrderRefund = async ({
   refundAmount,
 }: MarkRefundInput) => {
 
-
-
   let order;
 
   if (role === "CREATOR") {
+
     const store = await dbGetStoreByUserId(userId);
 
     if (!store) {
@@ -262,16 +269,21 @@ export const markOrderRefund = async ({
       orderId,
       store.id
     );
+
   } else {
+
     // ADMIN
     order = await orderDb.findOrderById(orderId);
+
   }
 
   if (!order) {
     throw new ApiError("Order not found", 404);
   }
 
-
+  /*
+  Prevent over refund
+  */
 
   if (refundAmount > Number(order.totalAmount)) {
     throw new ApiError(
@@ -280,14 +292,25 @@ export const markOrderRefund = async ({
     );
   }
 
+  /*
+  Update refund in order
+  */
 
   const updated = await orderDb.updateOrderRefund(
     orderId,
     refundAmount
   );
 
+  /*
+  Notify payout system
+  */
+
+  await adjustPayoutAfterRefund(orderId, refundAmount);
+
   return updated;
 };
+
+
 
 
 

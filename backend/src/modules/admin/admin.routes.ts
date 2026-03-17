@@ -17,6 +17,12 @@ import {
   getAdminConversation,
   softDeleteMessage,
 } from "../messages/message.controller";
+import { 
+  listAllPayoutsAdminController, 
+  releasePayoutController,
+  cancelPayoutController
+
+ } from "../payouts/payout.controller";
 
 const adminRoutes = Router();
 
@@ -88,4 +94,34 @@ adminRoutes.delete(
   requireRole(Role.ADMIN),
   softDeleteMessage
 );
+
+
+
+// Payout Routes
+
+adminRoutes.get(
+  "/payouts",
+  requireAuth,
+
+  requireRole(Role.ADMIN),
+  listAllPayoutsAdminController
+);
+
+
+adminRoutes.patch(
+  "/payouts/:id/release",
+  requireAuth,
+  requireRole(Role.ADMIN),
+  releasePayoutController
+);
+
+
+
+adminRoutes.patch(
+  "/payouts/:id/cancel",
+  requireAuth,
+  requireRole(Role.ADMIN),
+  cancelPayoutController
+);
+
 export default adminRoutes;

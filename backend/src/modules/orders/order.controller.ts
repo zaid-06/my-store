@@ -31,7 +31,7 @@ export const createOrderController = async (
 
 // import { Request, Response } from "express";
 import { listCreatorOrders } from "./order.service";
-import { session } from "auth-schema";
+// import { session } from "auth-schema";
 import { id } from "zod/v4/locales";
 
 export const getCreatorOrdersController = async (

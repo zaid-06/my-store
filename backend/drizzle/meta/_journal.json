@@ -71,6 +71,13 @@
       "when": 1773306498896,
       "tag": "0009_violet_justice",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1773669475721,
+      "tag": "0010_groovy_sage",
+      "breakpoints": true
     }
   ]
 }

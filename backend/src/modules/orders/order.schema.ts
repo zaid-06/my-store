@@ -49,6 +49,7 @@ export const buyers = pgTable("buyers", {
 
 
 
+
   //  ORDERS TABLE
 
 export const orders = pgTable("orders", {

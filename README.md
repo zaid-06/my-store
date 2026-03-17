@@ -589,5 +589,47 @@ Reasons:
 
 Real‑time features can be added later if needed.
 
+---
 
+# Payout System Logic
+
+## Commission Logic
+Platform commission is applied as a percentage on the order’s gross amount.
+* commission = (gross × commission%)
+* net = gross - commission
+All values are rounded to 2 decimal places.
+
+## Hold Period Logic
+Payouts are not immediately released after order completion.
+Each payout has an eligibleAt timestamp, representing a hold period (e.g., for returns/refunds).
+
+## Eligibility Transition
+Payout status flow:
+```
+LOCKED → ELIGIBLE → RELEASED
+```
+* A payout becomes ELIGIBLE only if:
+  * eligibleAt time has passed
+  * Order status is DELIVERED
+
+## Refund Interaction Behavior
+### Full Refund
+* If refund ≥ gross amount
+    → payout is CANCELLED
+
+### Partial Refund
+* Gross, commission, and net are recalculated
+* Ensures:
+  * Proper rounding
+  * Net amount never becomes negative
+
+## Manual Release Requirement
+* Payouts are not auto-released
+* Only ELIGIBLE payouts can be released manually
+* Ensures control over fund disbursement
+
+## Why Background Jobs Not Used Yet
+* Current system uses on-demand execution (service-triggered)
+* Simpler to debug and test during early stages
+* Can be replaced later with cron/queue workers for scalability
 
