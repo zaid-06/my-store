@@ -47,7 +47,7 @@ export const dbSoftDeleteStoreByUserId = (userId: string) => {
   return db
     .update(stores)
     .set({ deletedAt: new Date() })
-    .where(eq(stores.userId, userId));
+    .where(eq(stores.userId, userId));  
 };
 
 export const dbRestoreStoreById = (id: string) => {

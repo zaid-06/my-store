@@ -41,3 +41,11 @@ export const stores = pgTable("stores", {
   deletedAt: timestamp("deleted_at"),
 
 });
+import { relations } from "drizzle-orm";
+import {user } from "../users/user.schema";
+export const storesRelations = relations(stores, ({ one }) => ({
+  user: one(user, {
+    fields: [stores.userId],
+    references: [user.id],
+  }),
+}));

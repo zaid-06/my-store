@@ -23,6 +23,7 @@ import {
   cancelPayoutController
 
  } from "../payouts/payout.controller";
+import { getAllJobsController } from "../jobs/job.controller";
 
 const adminRoutes = Router();
 
@@ -95,8 +96,6 @@ adminRoutes.delete(
   softDeleteMessage
 );
 
-
-
 // Payout Routes
 
 adminRoutes.get(
@@ -122,6 +121,13 @@ adminRoutes.patch(
   requireAuth,
   requireRole(Role.ADMIN),
   cancelPayoutController
+);
+
+adminRoutes.get(
+  "/jobs",
+  requireAuth,
+  requireRole(Role.ADMIN),
+  getAllJobsController
 );
 
 export default adminRoutes;

@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { pgEnum, pgTable, uuid, numeric, timestamp, varchar } from "drizzle-orm/pg-core";
+import {stores} from "../stores/store.schema";
+
 
 export const payoutStatusEnum = pgEnum("payout_status", [
   "LOCKED",
@@ -40,6 +42,14 @@ export const payouts = pgTable("payouts", {
     .notNull(),
 });
 
+import { relations } from "drizzle-orm";
+
+export const payoutsRelations = relations(payouts, ({ one }) => ({
+  store: one(stores, {
+    fields: [payouts.storeId],
+    references: [stores.id],
+  }),
+}));
 
 // Admin Release Validation
 

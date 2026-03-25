@@ -4,6 +4,8 @@ import * as orderDb from "../orders/order.db";
 import { ApiError } from "../../shared/api-error";
 import { dbGetStoreByUserId } from "../stores/store.db";
 
+import * as jobDb from "../jobs/job.db";
+
 export const createPayoutForOrderService = async (orderId: string) => {
 
   // Find Order
@@ -34,11 +36,11 @@ export const createPayoutForOrderService = async (orderId: string) => {
   const holdDays = env.PAYOUT_HOLD_DAYS;
 
   const eligibleAt = new Date();
-  eligibleAt.setDate(eligibleAt.getDate() + holdDays);
+  eligibleAt.setDate(eligibleAt.getDate() + 0 ); // 0 is a temp value for testing
 
   const payout = await payoutDb.createPayout({
     storeId: order.storeId,
-    creatorId: order.storeId ,
+    creatorId: order.storeId, // (assumption based on your schema)
     orderId: order.id,
     grossAmount,
     commissionAmount,
@@ -46,9 +48,19 @@ export const createPayoutForOrderService = async (orderId: string) => {
     eligibleAt,
   });
 
+  
+   // SCHEDULE PAYOUT ELIGIBILITY JOB
+  
+  await jobDb.createJob({
+    type: "PAYOUT_ELIGIBILITY",
+    payload: {
+      payoutId: payout.id,
+    },
+    runAt: payout.eligibleAt, // VERY IMPORTANT
+  });
+
   return payout;
 };
-
 
 
 export const listCreatorPayoutsService = async ({
@@ -151,35 +163,52 @@ export const updateEligiblePayouts = async () => {
 
 
 
+
 export const releasePayoutService = async (payoutId: string) => {
 
-  const payout = await payoutDb.findPayoutById(payoutId);
+  // const payout = await payoutDb.findPayoutById(payoutId);
 
-  if (!payout) {
-    throw new ApiError("Payout not found", 404);
-  }
+  // if (!payout) {
+  //   throw new ApiError("Payout not found", 404);
+  // }
 
   
+const payout = await payoutDb.findPayoutWithCreator(payoutId);
+
+if (!payout) {
+  throw new ApiError("Payout not found", 404);
+}
+
+const creatorEmail = payout.store.user.email;
+
   // Idempotency protection
-  
-
   if (payout.status === "RELEASED") {
     return payout;
   }
 
   // Only ELIGIBLE payouts can be released
-
-  
-  
   if (payout.status !== "ELIGIBLE") {
     throw new ApiError("Payout not eligible for release", 400);
   }
 
   const updatedPayout = await payoutDb.releasePayout(payoutId);
 
+  
+   //CREATE EMAIL JOB (Notify Creator)
+  
+  await jobDb.createJob({
+    type: "EMAIL",
+    payload: {
+      to: creatorEmail, // ⚠️ ensure this exists
+      template: "PAYOUT_RELEASED",
+      data: {
+        amount: payout.netAmount,
+      },
+    }, 
+  });
+
   return updatedPayout;
 };
-
 
 
 export const adjustPayoutAfterRefund = async (

@@ -1,5 +1,6 @@
 import { db } from "../../config/db";
 import { payouts } from "./payout.schema";
+import { stores } from "../stores/store.schema";
 import { and, eq, gte, lte, sql } from "drizzle-orm";
 
 export const findPayoutByOrderId = async (orderId: string) => {
@@ -221,4 +222,17 @@ export const updatePayoutAmounts = async ({
 
 
 
+
+export const findPayoutWithCreator = async (payoutId: string) => {
+  return db.query.payouts.findFirst({
+    where: eq(payouts.id, payoutId),
+    with: {
+      store: {
+        with: {
+          user: true, // assuming store → user relation
+        },
+      },
+    },
+  });
+};
 

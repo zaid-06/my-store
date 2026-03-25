@@ -1,7 +1,8 @@
 // import { ApiError } from "@/shared/api-error";
 import { ApiError } from "../../shared/api-error";
 import * as orderDb from "./order.db";
-import { dbGetStoreByUserId } from "../stores/store.db"; 
+import { dbGetStoreByUserId } from "../stores/store.db";
+import * as jobDb from "../jobs/job.db"; 
 import { createPayoutForOrderService } from "../payouts/payout.service";
 type CreateOrderInput = {
   productId: string;
@@ -95,6 +96,16 @@ export const createOrder = async (input: CreateOrderInput) => {
     status: "PENDING",
   });
 
+   await jobDb.createJob({
+    type: "EMAIL",
+    payload: {
+      to: buyerEmail, // correct source
+      template: "ORDER_CREATED",
+      data: {
+        orderId: order.id,
+      },
+    },
+  });
 
 
   return {
@@ -228,15 +239,26 @@ export const updateCreatorOrderStatus = async ({
   );
 
   
-  /*
-   Trigger payout creation
-  */
+ 
   if (newStatus === "DELIVERED") {
     await createPayoutForOrderService(orderId);
   }
+    await jobDb.createJob({
+    type: "EMAIL",
+    payload: {
+      to: order.buyerEmail, // ✅ correct source
+      template: "ORDER_STATUS_UPDATED",
+      data: {
+        orderId: order.id,
+        status: updatedOrder.status,
+      },
+    },
+  });
 
   return updatedOrder;
 };
+
+
 
 
 

@@ -15,7 +15,7 @@ import {
 import { findOrderById } from "../orders/order.db";
 import { dbGetStoreByUserId } from "../stores/store.db";
 
-
+import * as jobDb from "../jobs/job.db";
 
 
 export const sendMessageForOrderService = async ({
@@ -109,7 +109,7 @@ export const getMessagesForOrderService = async ({
   return messages;
 };
 
-
+// buyer
 export const escalateDisputeService = async ({
   conversationId,
   email,
@@ -146,6 +146,16 @@ export const escalateDisputeService = async ({
   // set dispute
   const updated = await setConversationDispute(conversationId, true);
 
+  await jobDb.createJob({
+    type: "EMAIL",
+    payload: {
+      to: "admin@platform.com", // or env.ADMIN_EMAIL
+      template: "DISPUTE_ESCALATED",
+      data: {
+        orderId: order.id, // 
+      },
+    },
+  });
   return {
     message: "Dispute escalated",
     data: updated,
@@ -153,7 +163,7 @@ export const escalateDisputeService = async ({
 };
 
 
-
+// admin
 export const resolveDisputeService = async (conversationId: string) => {
   const conversation = await findConversationById(conversationId);
 
@@ -164,6 +174,7 @@ export const resolveDisputeService = async (conversationId: string) => {
   if (!conversation.isDisputed) {
     throw new Error("Conversation is not disputed");
   }
+
 
   const updated = await setConversationDispute(conversationId, false);
 

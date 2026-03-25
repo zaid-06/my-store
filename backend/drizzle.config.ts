@@ -11,7 +11,8 @@ export default defineConfig({
     "./src/modules/orders/order.schema.ts",
     "./src/modules/downloads/download.schema.ts",
     "./src/modules/messages/message.schema.ts",
-    "./src/modules/payouts/payout.schema.ts"
+    "./src/modules/payouts/payout.schema.ts",
+    "./src/modules/jobs/job.schema.ts"
   ],
 
   dialect: "postgresql",
