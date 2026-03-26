@@ -25,20 +25,21 @@ export const startJobRunner = () => {
 
 // PROCESS SINGLE JOB
 
-const processJob = async (job: any) => {
+export const processJob = async (job: any) => {
   try {
     // mark as PROCESSING
     await jobDb.markJobProcessing(job.id);
 
     /*
-      HANDLE JOB TYPES
+      HANDLE JOB TYPES  
     */
     if (job.type === "EMAIL") {
-      await handleEmailJob(job);
+      // await handleEmailJob(job);
+      await exports.handleEmailJob(job);
     }
 
     if (job.type === "PAYOUT_ELIGIBILITY") {
-      await handlePayoutEligibilityJob(job);
+      await exports.handlePayoutEligibilityJob(job);
     }
 
     // SUCCESS
@@ -70,7 +71,7 @@ const processJob = async (job: any) => {
 // EMAIL JOB
 
 
-const handleEmailJob = async (job: any) => {
+export  const handleEmailJob = async (job: any) => {
   const { to, template, data } = job.payload;
 
   await emailService.sendEmail(to, template, data);
@@ -81,7 +82,7 @@ const handleEmailJob = async (job: any) => {
 //PAYOUT ELIGIBILITY JOB
 
 
-const handlePayoutEligibilityJob = async (job: any) => {
+export const handlePayoutEligibilityJob = async (job: any) => {
   const { payoutId } = job.payload;
 
   const payout = await payoutDb.findPayoutById(payoutId);

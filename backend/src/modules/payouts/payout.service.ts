@@ -199,7 +199,7 @@ const creatorEmail = payout.store.user.email;
   await jobDb.createJob({
     type: "EMAIL",
     payload: {
-      to: creatorEmail, // ⚠️ ensure this exists
+      to: creatorEmail, //  ensure this exists
       template: "PAYOUT_RELEASED",
       data: {
         amount: payout.netAmount,

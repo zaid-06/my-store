@@ -154,7 +154,7 @@ Designed for reproducible development environments
   - Sets `deletedAt` to `null` and updates `updatedAt`.
   - Does **not** modify `isPublic` or `isVacationMode`.
 ---
-# 📦 Product Module – Backend Documentation
+#  Product Module – Backend Documentation
 ## This module manages the complete product lifecycle including:
 
 * Product creation
@@ -165,36 +165,36 @@ Designed for reproducible development environments
 * Public visibility filtering
 * Soft delete behavior
 
-## 🧭 Product Lifecycle
+##  Product Lifecycle
 A product goes through the following stages:
 ```
 Draft → Published → Soft Deleted
 ```
 
-### 1️⃣ Draft
+### 1 Draft
 * Default status when product is created
 * Not visible publicly
 * Can be edited freely
 
-### 2️⃣ Published
+### 2 Published
 * Must satisfy publishing rules
 * Visible in public APIs
 * Must contain variants and media
 
-### 3️⃣ Soft Deleted
+### 3 Soft Deleted
 * deletedAt timestamp is set
 * Product is hidden from all public queries
 * Data remains in database
 * Cannot be published unless restored (if implemented)
 
-## 🚀 Publishing Rules
+##  Publishing Rules
 ### A product can only be published if:
 
-* ✅ Product exists
-* ✅ Product belongs to the store
-* ✅ Product is not soft deleted
-* ✅ At least 1 variant exists
-* ✅ At least 1 media item exists
+*  Product exists
+*  Product belongs to the store
+*  Product is not soft deleted
+*  At least 1 variant exists
+*  At least 1 media item exists
 
 ### If any rule fails:
 ```
@@ -204,7 +204,7 @@ publishProduct() returns null
 ``` 
 status = "published"
 ```
-## 🧬 Variant Logic
+##  Variant Logic
 ###Each product:
 * Must have at least 1 variant before publishing
 * Variants belong to a single product
@@ -218,7 +218,7 @@ status = "published"
 * Price stored as string (decimal safety)
 * Inventory must be numeric
 
-## 🗂 Category Logic
+##  Category Logic
 
 #### Categories are scoped per store.
 
@@ -229,11 +229,11 @@ status = "published"
 
 Example:
 ```
-Store A → "Clothing" ✅
-Store B → "Clothing" ✅
-Store A → "Clothing" again ❌
+Store A → "Clothing" 
+Store B → "Clothing" 
+Store A → "Clothing" again 
 ```
-## 🖼 Media Constraints
+## Media Constraints
 Media belongs to a product.
 Publishing requires:
 * At least one media item
@@ -244,7 +244,7 @@ Publishing requires:
 * type (image, video, etc.)
 If no media exists → product cannot be published.
 
-## 🌍 Public Visibility Filtering
+##  Public Visibility Filtering
 
 ### Public APIs return products only if:
 1. status = "published"
@@ -263,7 +263,7 @@ if (variants.length === 0 || media.length === 0) {
   return null;
 }
 ```
-## 🗑 Soft Delete Behavior
+##  Soft Delete Behavior
 Products are NOT permanently deleted.
 
 Instead:
@@ -281,7 +281,7 @@ Soft Delete Rules:
 * Recovery possible
 * Production-grade data safety
 
-## 🏗 Architecture Design
+##  Architecture Design
 ### Separation of Concerns
 Layer	           Responsibility
 DB Layer      	 Pure database operations
@@ -294,7 +294,7 @@ Test Layer	     Integration validation
 * Scalability
 * Maintainability
 
-## 🧪 Testing Coverage
+##  Testing Coverage
 ### The module includes tests for:
 * Variant creation
 * Publishing validation rules
@@ -305,14 +305,14 @@ Test Layer	     Integration validation
 
 Tests run sequentially to avoid DB race conditions.
 
-## 🔐 Store Ownership Enforcement
+##  Store Ownership Enforcement
 ### All operations validate:
 ```
 product.storeId === storeId
 ```
 Prevents cross-store data manipulation.
 
-### ✅ Module Status
+###  Module Status
 
 ✔ Product lifecycle implemented
 ✔ Publishing rules enforced
@@ -370,7 +370,7 @@ GET /v1/api/download/:token
 ```
 Token validation steps:
 
-1️⃣ Validate token exists
+1 Validate token exists
 ```
 digital_downloads.token = token
 ```
@@ -378,7 +378,7 @@ If not found:
 ```
 Invalid download token
 ```
-2️⃣ Validate order status
+2 Validate order status
 Order must be:
 ```
 status = PAID
@@ -393,27 +393,27 @@ Errors:
 Order not paid
 Order cancelled
 ```
-3️⃣ Validate expiry
+3 Validate expiry
 ```
 if expiresAt < current time
 → Download expired
 ```
-4️⃣ Validate download limit
+4 Validate download limit
 ```
 if downloadCount >= maxDownloads
 → Download limit reached
 ```
-5️⃣ Fetch file
+5 Fetch file
 File is retrieved from:
 ```
 product_media
 where type = "file"
 ```
-6️⃣ Increment download count
+6 Increment download count
 ```
 downloadCount += 1
 ```
-7️⃣ Log download activity
+7 Log download activity
 
 A record is stored in:
 ```
@@ -430,7 +430,7 @@ createdAt
 ## Download Lifecycle
 The lifecycle of a digital download:
 
-1️⃣ Order Creation
+1 Order Creation
 When a customer creates an order:
 ```
 productType = DIGITAL
@@ -454,20 +454,20 @@ PENDING
 ```
 Download record is created only when status becomes PAID.
 
-2️⃣ Download Access
+2 Download Access
 Customer receives download link:
 ```
 GET /v1/api/download/:token
 ```
 System validates token and order status.
 
-3️⃣ Download Tracking
+3 Download Tracking
 Each download attempt:
 ```
 increment downloadCount
 insert record in download_logs
 ```
-4️⃣ Creator Visibility
+4 Creator Visibility
 Creators can view download activity:
 ```
 GET /v1/api/products/:id/downloads
@@ -480,7 +480,7 @@ createdAt
 ```
 Only downloads belonging to the creator's store are visible.
 ---
-5️⃣ Admin Visibility
+5 Admin Visibility
 Admins can view all digital downloads:
 
 GET /v1/api/admin/downloads
@@ -633,3 +633,36 @@ LOCKED → ELIGIBLE → RELEASED
 * Simpler to debug and test during early stages
 * Can be replaced later with cron/queue workers for scalability
 
+
+
+#  Background Jobs System
+### Why polling was chosen
+We use a simple polling-based worker (runs every 30s) instead of cron/queues to keep the system minimal and easy to understand. It avoids external dependencies like Redis and is sufficient for current scale.
+
+##  Job Retry Logic
+* Each job has an attempts counter
+* On failure:
+  * attempts < 3 → retry
+  * attempts ≥ 3 → mark as FAILED
+* Errors are stored in lastError
+* Worker continues processing other jobs (never crashes)
+
+##  Email Abstraction
+* Email logic is separated via email.service
+* Function: sendEmail(to, template, data)
+* Currently logs to console (no real provider)
+* Templates are simple functions → easy to replace later with real provider
+
+##  Payout Eligibility Scheduling
+* When payout is created → a job is scheduled:
+  * type: PAYOUT_ELIGIBILITY
+  * runAt = eligibleAt
+* Worker checks:
+  * if LOCKED and eligibleAt passed → updates to ELIGIBLE
+
+##  Limitations
+* Polling is not real-time (30s delay)
+* No distributed workers (single instance only)
+* No job prioritization
+* No external queue (e.g., Redis/Bull)
+* Not optimized for high scale (yet)
