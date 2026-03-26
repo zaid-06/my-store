@@ -49,3 +49,5 @@ export const storesRelations = relations(stores, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+// add suspend field 
