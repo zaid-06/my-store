@@ -9,11 +9,11 @@ export const dbCreateStore = (data: any) => {
 };
 
 // READ
-export const dbGetStoreByUserId = (userId: string) => {
-  return db.query.stores.findFirst({
-    where: eq(stores.userId, userId),
-  });
-};
+  export const dbGetStoreByUserId = (userId: string) => {
+    return db.query.stores.findFirst({
+      where: eq(stores.userId, userId),
+    });
+  };
 
 export const dbGetStoreByUsername = (username: string) => {
   return db.query.stores.findFirst({
