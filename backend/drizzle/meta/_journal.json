@@ -85,6 +85,20 @@
       "when": 1774279707626,
       "tag": "0011_free_celestials",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1774532668507,
+      "tag": "0012_lumpy_galactus",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1774593600805,
+      "tag": "0013_kind_stature",
+      "breakpoints": true
     }
   ]
 }

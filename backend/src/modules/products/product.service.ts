@@ -35,6 +35,8 @@ import {
 // product.service.ts
 import * as productDb from "./product.db";
 
+import * as storeDb from "../stores/store.db";
+
 export const createProduct = async (data: {
   storeId: string;
   title: string;
@@ -42,11 +44,25 @@ export const createProduct = async (data: {
   isFeatured?: boolean;
   productType: "PHYSICAL" | "DIGITAL";
 }) => {
-  
+
+  //  TASK 9 RULE
+  const store = await storeDb.dbGetStoreById(data.storeId);
+
+  if (!store) {
+    throw new ApiError("Store not found", 404);
+  }
+
+  if (store.isSuspended) {
+    throw new ApiError("Store is suspended", 403);
+  }
+
+  // optional but good (already handled in some flows)
+  if (!store.isPublic) {
+    throw new ApiError("Store is private", 400);
+  }
 
   return productDb.insertProduct(data);
 };
-
 
 export const createCategory = async (
   storeId: string,
@@ -121,6 +137,17 @@ export const updateProductByIdForOwner = async ({
   data: UpdateProductInput;
 }) => {
   //  Ownership + existence check
+
+  //  TASK 9 RULE
+  const store = await storeDb.dbGetStoreById(storeId);
+
+  if (!store) {
+    throw new ApiError("Store not found", 404);
+  }
+
+  if (store.isSuspended) {
+    throw new ApiError("Store is suspended", 403);
+  }
   const product = await findProductByIdAndStore(productId, storeId);
   if (!product) return null;
 

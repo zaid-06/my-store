@@ -14,9 +14,8 @@ import {
 } from "./message.db";
 import { findOrderById } from "../orders/order.db";
 import { dbGetStoreByUserId } from "../stores/store.db";
-
+import { ApiError } from "../../shared/api-error";
 import * as jobDb from "../jobs/job.db";
-
 
 export const sendMessageForOrderService = async ({
   orderId,
@@ -29,37 +28,37 @@ export const sendMessageForOrderService = async ({
   phone: string;
   content: string;
 }) => {
-  // 1 find order
+  // 1. find order
   const order = await findOrderById(orderId);
 
   if (!order) {
-    throw new Error("Order not found");
+    throw new ApiError("Order not found", 404);
   }
 
   // cancelled order check
   if (order.status === "CANCELLED") {
-    throw new Error("Cannot message cancelled order");
+    throw new ApiError("Cannot message cancelled order", 400);
   }
 
   // verify buyer
   if (order.buyerEmail !== email || order.buyerPhone !== phone) {
-    throw new Error("Buyer verification failed");
+    throw new ApiError("Buyer verification failed", 403);
   }
 
   // find conversation
   let conversation = await findConversationByOrderId(orderId);
 
-  //  create conversation if missing (lazy creation)
+  // create conversation if missing (lazy creation)
   if (!conversation) {
     conversation = await createConversation({
       orderId,
       storeId: order.storeId,
-      creatorId: order.storeId ,
+      creatorId: order.storeId,
       buyerEmail: order.buyerEmail,
     });
   }
 
-  //  create message
+  // create message
   const message = await createMessage({
     conversationId: conversation.id,
     senderRole: "BUYER",
@@ -74,7 +73,6 @@ export const sendMessageForOrderService = async ({
 };
 
 
-
 export const getMessagesForOrderService = async ({
   orderId,
   email,
@@ -84,31 +82,30 @@ export const getMessagesForOrderService = async ({
   email: string;
   phone: string;
 }) => {
-  // 1 find order
+  // 1. find order
   const order = await findOrderById(orderId);
 
   if (!order) {
-    throw new Error("Order not found");
+    throw new ApiError("Order not found", 404);
   }
 
-  // 2 verify buyer
+  // 2. verify buyer
   if (order.buyerEmail !== email || order.buyerPhone !== phone) {
-    throw new Error("Buyer verification failed");
+    throw new ApiError("Buyer verification failed", 403);
   }
 
-  // 3 find conversation
+  // 3. find conversation
   const conversation = await findConversationByOrderId(orderId);
 
   if (!conversation) {
-    return [];
+    return []; //  correct: no error, just no messages
   }
 
-  // 4 get messages
+  // 4. get messages
   const messages = await getMessagesByConversationId(conversation.id);
 
   return messages;
 };
-
 // buyer
 export const escalateDisputeService = async ({
   conversationId,
@@ -119,43 +116,45 @@ export const escalateDisputeService = async ({
   email: string;
   phone: string;
 }) => {
-  //  find conversation
+  // 1. find conversation
   const conversation = await findConversationById(conversationId);
 
   if (!conversation) {
-    throw new Error("Conversation not found");
+    throw new ApiError("Conversation not found", 404);
   }
 
-  //  get order
+  // 2. get order
   const order = await findOrderById(conversation.orderId);
 
   if (!order) {
-    throw new Error("Order not found");
+    throw new ApiError("Order not found", 404);
   }
 
-  //  verify buyer
+  // 3. verify buyer
   if (order.buyerEmail !== email || order.buyerPhone !== phone) {
-    throw new Error("Buyer verification failed");
+    throw new ApiError("Buyer verification failed", 403);
   }
 
-  //  already disputed check
+  // 4. already disputed check
   if (conversation.isDisputed) {
-    throw new Error("Conversation already disputed");
+    throw new ApiError("Conversation already disputed", 400);
   }
 
-  // set dispute
+  // 5. set dispute
   const updated = await setConversationDispute(conversationId, true);
 
+  // 6. notify admin
   await jobDb.createJob({
     type: "EMAIL",
     payload: {
-      to: "admin@platform.com", // or env.ADMIN_EMAIL
+      to: "admin@platform.com", // ideally env.ADMIN_EMAIL
       template: "DISPUTE_ESCALATED",
       data: {
-        orderId: order.id, // 
+        orderId: order.id,
       },
     },
   });
+
   return {
     message: "Dispute escalated",
     data: updated,
@@ -168,13 +167,12 @@ export const resolveDisputeService = async (conversationId: string) => {
   const conversation = await findConversationById(conversationId);
 
   if (!conversation) {
-    throw new Error("Conversation not found");
+    throw new ApiError("Conversation not found", 404);
   }
 
   if (!conversation.isDisputed) {
-    throw new Error("Conversation is not disputed");
+    throw new ApiError("Conversation is not disputed", 400);
   }
-
 
   const updated = await setConversationDispute(conversationId, false);
 
@@ -185,7 +183,6 @@ export const resolveDisputeService = async (conversationId: string) => {
 };
 
 
-
 export const listCreatorConversationsService = async ({
   creatorId,
   isDisputed,
@@ -193,14 +190,14 @@ export const listCreatorConversationsService = async ({
   creatorId: string;
   isDisputed?: boolean;
 }) => {
-  // find creator store
+  // 1. find creator store
   const store = await dbGetStoreByUserId(creatorId);
 
   if (!store) {
-    throw new Error("Store not found for creator");
+    throw new ApiError("Store not found for creator", 404);
   }
 
-  //  fetch conversations
+  // 2. fetch conversations
   const conversations = await getConversationsByStore(
     store.id,
     isDisputed
@@ -217,26 +214,26 @@ export const getConversationService = async ({
   creatorId: string;
   conversationId: string;
 }) => {
-  //  find creator store
+  // 1. find creator store
   const store = await dbGetStoreByUserId(creatorId);
 
   if (!store) {
-    throw new Error("Store not found for creator");
+    throw new ApiError("Store not found for creator", 404);
   }
 
-  //  find conversation
+  // 2. find conversation
   const conversation = await findConversationById(conversationId);
 
   if (!conversation) {
-    throw new Error("Conversation not found");
+    throw new ApiError("Conversation not found", 404);
   }
 
-  //  store isolation check
+  // 3. store isolation check
   if (conversation.storeId !== store.id) {
-    throw new Error("Access denied to this conversation");
+    throw new ApiError("Access denied to this conversation", 403);
   }
 
-  //  fetch messages
+  // 4. fetch messages
   const messages = await getMessagesByConversationId(conversationId);
 
   return {
@@ -244,7 +241,6 @@ export const getConversationService = async ({
     messages,
   };
 };
-
 
 
 export const sendCreatorMessageService = async ({
@@ -256,26 +252,31 @@ export const sendCreatorMessageService = async ({
   conversationId: string;
   content: string;
 }) => {
-  //  find creator store
+  // 1. find creator store
   const store = await dbGetStoreByUserId(creatorId);
 
   if (!store) {
-    throw new Error("Store not found for creator");
+    throw new ApiError("Store not found for creator", 404);
   }
 
-  //  find conversation
+  // TASK 9: BLOCK IF SUSPENDED
+  if (store.isSuspended) {
+    throw new ApiError("Store is suspended. Messaging disabled", 403);
+  }
+
+  // 2. find conversation
   const conversation = await findConversationById(conversationId);
 
   if (!conversation) {
-    throw new Error("Conversation not found");
+    throw new ApiError("Conversation not found", 404);
   }
 
-  //  store isolation check
+  // 3. store isolation check
   if (conversation.storeId !== store.id) {
-    throw new Error("Access denied to this conversation");
+    throw new ApiError("Access denied to this conversation", 403);
   }
 
-  //  create message
+  // 4. create message
   const message = await createMessage({
     conversationId,
     senderRole: "CREATOR",
@@ -285,7 +286,6 @@ export const sendCreatorMessageService = async ({
 
   return message;
 };
-
 
 
 export const listAdminConversationsService = async ({
@@ -314,14 +314,14 @@ export const listAdminConversationsService = async ({
 export const getAdminConversationService = async (
   conversationId: string
 ) => {
-  //  find conversation
+  // 1. find conversation
   const conversation = await findConversationById(conversationId);
 
   if (!conversation) {
-    throw new Error("Conversation not found");
+    throw new ApiError("Conversation not found", 404);
   }
 
-  //  get messages
+  // 2. get messages (admin can see all, no restriction)
   const messages = await adminGetMessagesByConversationId(conversationId);
 
   return {
@@ -336,11 +336,11 @@ export const softDeleteMessageService = async (messageId: string) => {
   const message = await findMessageById(messageId);
 
   if (!message) {
-    throw new Error("Message not found");
+    throw new ApiError("Message not found", 404);
   }
 
   if (message.deletedAt) {
-    throw new Error("Message already deleted");
+    throw new ApiError("Message already deleted", 400);
   }
 
   const updated = await softDeleteMessageById(messageId);

@@ -2,7 +2,7 @@
 import { db } from "../../config/db";
 import { digitalDownloads } from "./download.schema";
 import { generateDownloadToken } from "../../shared/generateDownloadToken";
-
+import { ApiError } from "../../shared/api-error";
 import { getDownloadsForProduct } from "./download.db";
 
 import { Request } from "express";
@@ -14,30 +14,34 @@ import {
 } from "./download.db";
 
 export const getDownloadService = async (token: string, req: Request) => {
-
   // 1 validate token
   const record = await getDownloadByToken(token);
 
   if (!record) {
-    throw new Error("Invalid download token");
+    throw new ApiError("Invalid download token", 404);
   }
 
-  if (!record?.order) {
-  throw new Error("Order not found");
-}
+  if (!record.order) {
+    throw new ApiError("Order not found", 404);
+  }
+
   // 2 validate order status
-  if (record?.order?.status as string === "CANCELLED") {
-    throw new Error("Order cancelled");
-  }
-  if (record?.order?.status !== "PAID") {
-    throw new Error("Order not paid");
+  if (record.order.status === "CANCELLED") {
+    throw new ApiError("Order cancelled", 400);
   }
 
-  
+  if (record.order.status !== "PAID") {
+    throw new ApiError("Order not paid", 400);
+  }
+
+  // TASK 9: Guardrail (prevent access if refunded fully)
+  // if (record.order.status === "REFUNDED") {
+  //   throw new ApiError("Download not allowed for refunded order", 403);
+  // }
 
   // 3 expiry check
   if (record.expiresAt && new Date() > record.expiresAt) {
-    throw new Error("Download expired");
+    throw new ApiError("Download expired", 410);
   }
 
   // 4 max download check
@@ -45,14 +49,14 @@ export const getDownloadService = async (token: string, req: Request) => {
     record.maxDownloads !== null &&
     record.downloadCount >= record.maxDownloads
   ) {
-    throw new Error("Download limit reached");
+    throw new ApiError("Download limit reached", 403);
   }
 
   // 5 get product file
   const file = await getProductFile(record.productId);
 
   if (!file) {
-    throw new Error("File not found");
+    throw new ApiError("File not found", 404);
   }
 
   // 6 increment count

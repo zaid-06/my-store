@@ -3,9 +3,9 @@ import * as payoutDb from "./payout.db";
 import * as orderDb from "../orders/order.db";
 import { ApiError } from "../../shared/api-error";
 import { dbGetStoreByUserId } from "../stores/store.db";
-
+import * as storeDb from "../stores/store.db";
 import * as jobDb from "../jobs/job.db";
-
+//It is  called  from order service ( order delevered)
 export const createPayoutForOrderService = async (orderId: string) => {
 
   // Find Order
@@ -15,6 +15,15 @@ export const createPayoutForOrderService = async (orderId: string) => {
     throw new ApiError("Order not found", 404);
   }
 
+  const store = await storeDb.dbGetStoreById(order.storeId);
+
+  if (!store) {
+    throw new ApiError("Store not found", 404);
+  }
+
+  if (store.isSuspended) {
+    throw new ApiError("Store is suspended. Payouts are disabled", 403);
+  }
   // Prevent duplicate payout
   const existingPayout = await payoutDb.findPayoutByOrderId(orderId);
 

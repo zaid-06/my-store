@@ -4,35 +4,32 @@ import * as storeService from "./store.service";
 import { auth } from "../auth/auth.config";
 
 //  * Controller to create a new store for the authenticated user
+import { createStoreSchema } from "./store.schema";
+import { ApiError } from "../../shared/api-error";
+
+import { updateStoreSchema } from "./store.schema";
+
 export const createStoreController = async (req: Request, res: Response) => {
-  console.log("in createStoreController...")
   const session = await auth.api.getSession({
     headers: fromNodeHeaders(req.headers),
   });
-  console.log("User ID:", session?.user.id)
-  console.log("Req User:", req.user)
 
   if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
+    throw new ApiError("Unauthorized", 401);
   }
 
-  // Check if the user already has a store
-  const existingStore = await storeService.getStoreByUserId(session.user.id);
-  if (existingStore) {
-    return res.status(400).json({ error: "Store already exists" });
+  //  ZOD VALIDATION
+  const parsed = createStoreSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    throw new ApiError(parsed.error.message, 400);
   }
 
-  // Check if the username is already taken
-  const usernameTaken = await storeService.getStoreByUsername(req.body.username);
-  if (usernameTaken) {
-    return res.status(400).json({ error: "Username already taken" });
-  }
-
-  // Create the new store
-  const store = await storeService.createStore({
-    ...req.body,
-    userId: session.user.id,
-  });
+  // CALL SERVICE (NO LOGIC HERE)
+  const store = await storeService.createStoreService(
+    session.user.id,
+    parsed.data
+  );
 
   return res.json(store);
 };
@@ -47,9 +44,8 @@ export const getMyStoreController = async (req: Request, res: Response) => {
   });
 
   if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
+    throw new ApiError("Unauthorized", 401);
   }
-
   const store = await storeService.getStoreByUserId(session.user.id);
   return res.json(store);
 };
@@ -59,23 +55,11 @@ export const getPublicStoreController = async (
   req: Request<{ username: string }>,
   res: Response
 ) => {
-  const store = await storeService.getStoreByUsername(req.params.username);
+  const store = await storeService.getPublicStoreService(
+    req.params.username
+  );
 
-  if (!store || !store.isPublic || store.deletedAt) {
-    return res.status(404).json({ error: "Store not found" });
-  }
-
-  // Return only public store fields
-  return res.json({
-    username: store.username,
-    name: store.name,
-    description: store.description,
-    avatarUrl: store.avatarUrl,
-    bannerUrl: store.bannerUrl,
-    announcementText: store.announcementText,
-    announcementEnabled: store.announcementEnabled,
-    isVacationMode: store.isVacationMode,
-  });
+  return res.json(store);
 };
 
 export const updateStoreController = async (req: Request, res: Response) => {
@@ -84,51 +68,46 @@ export const updateStoreController = async (req: Request, res: Response) => {
   });
 
   if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
+    throw new ApiError("Unauthorized", 401);
   }
 
-  const existingStore = await storeService.getStoreByUserId(session.user.id);
-  if (!existingStore) {
-    return res.status(404).json({ error: "Store not found" });
+  // ZOD VALIDATION (partial update)
+  const parsed = updateStoreSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    throw new ApiError(parsed.error.message, 400);
   }
 
-  const body = typeof req.body === "object" && req.body !== null ? req.body : {};
-
-  // Username is immutable
-  if (body.username !== undefined) {
-    return res.status(400).json({ error: "Username cannot be changed" });
-  }
-
-  const updatable = {
-    name: body.name,
-    description: body.description,
-    avatarUrl: body.avatarUrl,
-    bannerUrl: body.bannerUrl,
-    isPublic: body.isPublic,
-    isVacationMode: body.isVacationMode,
-    announcementText: body.announcementText,
-    announcementEnabled: body.announcementEnabled,
-    updatedAt: new Date(),
-  };
-  const data = Object.fromEntries(
-    Object.entries(updatable).filter(([, v]) => v !== undefined)
+  const store = await storeService.updateStoreService(
+    session.user.id,
+    parsed.data
   );
 
-  const hasUpdates = Object.keys(data).some((k) => k !== "updatedAt");
-  if (!hasUpdates) {
-    return res.status(400).json({
-      error:
-        "No updatable fields provided. Send a JSON body with at least one of: name, description, avatarUrl, bannerUrl, isPublic, isVacationMode, announcementText, announcementEnabled. Ensure Content-Type: application/json is set.",
-    });
+  return res.json(store);
+};
+
+export const deleteMyStoreController = async (req: Request, res: Response) => {
+  const session = await auth.api.getSession({
+    headers: fromNodeHeaders(req.headers),
+  });
+
+  if (!session?.user?.id) {
+    throw new ApiError("Unauthorized", 401);
   }
 
-  await storeService.updateStore(session.user.id, data);
-  const store = await storeService.getStoreByUserId(session.user.id);
-  return res.json(store ?? existingStore);
+  const result = await storeService.deleteMyStoreService(
+    session.user.id
+  );
+
+  return res.status(200).json(result);
 };
 
 
-export const deleteMyStoreController = async (req: Request, res: Response) => {
+// task 9 
+export const suspendStoreController = async (
+  req: Request<{ id: string }, {}, { reason: string }>,
+  res: Response
+) => {
   const session = await auth.api.getSession({
     headers: fromNodeHeaders(req.headers),
   });
@@ -137,18 +116,35 @@ export const deleteMyStoreController = async (req: Request, res: Response) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const existingStore = await storeService.getStoreByUserId(session.user.id);
-
-  if (!existingStore) {
-    return res.status(404).json({ error: "Store not found" });
-  }
-  console.log("existingStore:....................", existingStore)
-  if (existingStore.deletedAt) {
-    return res.status(200).json({ message: "Store already deleted" });
+  if (!req.body?.reason) {
+    return res.status(400).json({ error: "Suspension reason required" });
   }
 
-  await storeService.softDeleteStore(session.user.id);
-  return res.status(200).json({ message: "Store deleted" });
+  const result = await storeService.suspendStoreService({
+    storeId: req.params.id,
+    reason: req.body.reason,
+    adminId: session.user.id,
+  });
+
+  return res.json(result);
 };
 
+export const unsuspendStoreController = async (
+  req: Request<{ id: string }>,
+  res: Response
+) => {
+  const session = await auth.api.getSession({
+    headers: fromNodeHeaders(req.headers),
+  });
 
+  if (!session?.user?.id) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const result = await storeService.unsuspendStoreService({
+    storeId: req.params.id,
+    adminId: session.user.id,
+  });
+
+  return res.json(result);
+};

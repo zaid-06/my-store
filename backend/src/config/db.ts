@@ -11,7 +11,7 @@ import * as downloadSchema from "../modules/downloads/download.schema";
 import * as messageSchema from "../modules/messages/message.schema";
 import * as payoutSchema from "../modules/payouts/payout.schema";
 import * as jobSchema from "../modules/jobs/job.schema";
-
+import * as adminAuditSchema from "../modules/admin/admin-audit.schema";
 
 
 
@@ -28,6 +28,8 @@ export const db = drizzle(pool, {
     ...downloadSchema,
     ...messageSchema,
     ...payoutSchema,
-    ...jobSchema
+    ...jobSchema,
+    ...adminAuditSchema,
+
   },
 });

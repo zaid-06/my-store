@@ -24,7 +24,8 @@ import {
 
  } from "../payouts/payout.controller";
 import { getAllJobsController } from "../jobs/job.controller";
-
+import { suspendStoreController } from "../stores/store.controller";
+import { unsuspendStoreController } from "../stores/store.controller";
 const adminRoutes = Router();
 
 // All admin routes require auth + ADMIN role
@@ -130,4 +131,19 @@ adminRoutes.get(
   getAllJobsController
 );
 
+adminRoutes.patch(
+  "/stores/:id/suspend",
+
+  requireAuth,
+  requireRole(Role.ADMIN),
+  suspendStoreController
+);
+  
+
+adminRoutes.patch(
+  "/stores/:id/unsuspend",
+   requireAuth,
+  requireRole(Role.ADMIN),
+  unsuspendStoreController
+);
 export default adminRoutes;

@@ -57,3 +57,30 @@ export const dbRestoreStoreById = (id: string) => {
     .where(eq(stores.id, id))
     .returning();
 };
+
+export const dbSuspendStore = async (
+  storeId: string,
+  reason: string
+) => {
+  await db
+    .update(stores)
+    .set({
+      isSuspended: true,
+      suspensionReason: reason,
+      suspendedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(stores.id, storeId));
+};
+
+export const dbUnsuspendStore = async (storeId: string) => {
+  await db
+    .update(stores)
+    .set({
+      isSuspended: false,
+      suspensionReason: null,
+      suspendedAt: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(stores.id, storeId));
+};

@@ -48,7 +48,11 @@ export const createOrder = async (input: CreateOrderInput) => {
   if (store.isVacationMode) {
     throw new ApiError("Store is in vacation mode", 400);
   }
-  
+  //  TASK 9 (VERY IMPORTANT)
+  if (store.isSuspended) {
+    throw new ApiError("Store is suspended. Orders are disabled", 403);
+  }
+    
 
   // Variant Validation
   const variant = await orderDb.findVariantForOrder(
@@ -246,7 +250,7 @@ export const updateCreatorOrderStatus = async ({
     await jobDb.createJob({
     type: "EMAIL",
     payload: {
-      to: order.buyerEmail, // ✅ correct source
+      to: order.buyerEmail, //  correct source
       template: "ORDER_STATUS_UPDATED",
       data: {
         orderId: order.id,
