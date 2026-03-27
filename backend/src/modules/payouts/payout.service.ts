@@ -5,6 +5,9 @@ import { ApiError } from "../../shared/api-error";
 import { dbGetStoreByUserId } from "../stores/store.db";
 import * as storeDb from "../stores/store.db";
 import * as jobDb from "../jobs/job.db";
+import * as adminAuditLogDb from "../admin/admin-audit.db";
+import { assertStoreNotSuspended} from "../../guards/store.guard";
+
 //It is  called  from order service ( order delevered)
 export const createPayoutForOrderService = async (orderId: string) => {
 
@@ -21,9 +24,10 @@ export const createPayoutForOrderService = async (orderId: string) => {
     throw new ApiError("Store not found", 404);
   }
 
-  if (store.isSuspended) {
-    throw new ApiError("Store is suspended. Payouts are disabled", 403);
-  }
+  // if (store.isSuspended) {
+  //   throw new ApiError("Store is suspended. Payouts are disabled", 403);
+  // }
+  assertStoreNotSuspended(store);
   // Prevent duplicate payout
   const existingPayout = await payoutDb.findPayoutByOrderId(orderId);
 
@@ -150,6 +154,12 @@ export const updateEligiblePayouts = async () => {
 
   for (const payout of lockedPayouts) {
 
+    //  TASK 9: skip frozen payouts
+    if (payout.isFrozen) {
+      continue;
+    }
+
+
     if (new Date(payout.eligibleAt) <= now) {
 
       const order = await orderDb.findOrderById(payout.orderId);
@@ -173,7 +183,7 @@ export const updateEligiblePayouts = async () => {
 
 
 
-export const releasePayoutService = async (payoutId: string) => {
+export const releasePayoutService = async (payoutId: string, adminId: string ) => {
 
   // const payout = await payoutDb.findPayoutById(payoutId);
 
@@ -182,14 +192,21 @@ export const releasePayoutService = async (payoutId: string) => {
   // }
 
   
-const payout = await payoutDb.findPayoutWithCreator(payoutId);
+  const payout = await payoutDb.findPayoutWithCreator(payoutId);
 
-if (!payout) {
-  throw new ApiError("Payout not found", 404);
-}
+  if (!payout) {
+    throw new ApiError("Payout not found", 404);
+  }
 
-const creatorEmail = payout.store.user.email;
+  const store = payout.store;
+  const creatorEmail = payout.store.user.email;
 
+  // BLOCK IF STORE SUSPENDED
+  assertStoreNotSuspended(store);
+  //  TASK 9: BLOCK IF FROZEN
+  if (payout.isFrozen) {
+    throw new ApiError("Payout is frozen and cannot be released", 403);
+  }
   // Idempotency protection
   if (payout.status === "RELEASED") {
     return payout;
@@ -202,7 +219,7 @@ const creatorEmail = payout.store.user.email;
 
   const updatedPayout = await payoutDb.releasePayout(payoutId);
 
-  
+
    //CREATE EMAIL JOB (Notify Creator)
   
   await jobDb.createJob({
@@ -230,6 +247,8 @@ export const adjustPayoutAfterRefund = async (
   if (!payout) {
     return;
   }
+  //  TASK 9: skip frozen payouts
+  if (payout.isFrozen) return;
 
   // If payout already released → do nothing
   if (payout.status === "RELEASED") {
@@ -285,6 +304,11 @@ export const cancelPayoutService = async (payoutId: string) => {
     throw new ApiError("Payout not found", 404);
   }
 
+   // BLOCK IF FROZEN
+  if (payout.isFrozen) {
+    throw new ApiError("Payout is frozen and cannot be cancelled", 403);
+  }
+
   //  Cannot cancel released payout
   if (payout.status === "RELEASED") {
     throw new ApiError("Released payout cannot be cancelled", 400);
@@ -302,4 +326,66 @@ export const cancelPayoutService = async (payoutId: string) => {
     status: "CANCELLED",
     netAmount: "0"
   };
+};
+
+export const freezePayoutService = async ({
+  payoutId,
+  adminId,
+}: {
+  payoutId: string;
+  adminId: string;
+}) => {
+  const payout = await payoutDb.findPayoutById(payoutId);
+
+  if (!payout) {
+    throw new ApiError("Payout not found", 404);
+  }
+
+  if (payout.isFrozen) {
+    throw new ApiError("Payout already frozen", 400);
+  }
+
+  await payoutDb.setPayoutFrozen(payoutId, true);
+
+  //  TASK 9: AUDIT LOG
+  await adminAuditLogDb.createLog({
+    adminId,
+    action: "PAYOUT_FREEZE",
+    entityType: "PAYOUT",
+    entityId: payoutId,
+    metadata: {},
+  });
+
+  return { message: "Payout frozen successfully" };
+};
+
+export const unfreezePayoutService = async ({
+  payoutId,
+  adminId,
+}: {
+  payoutId: string;
+  adminId: string;
+}) => {
+  const payout = await payoutDb.findPayoutById(payoutId);
+
+  if (!payout) {
+    throw new ApiError("Payout not found", 404);
+  }
+
+  if (!payout.isFrozen) {
+    throw new ApiError("Payout is not frozen", 400);
+  }
+
+  await payoutDb.setPayoutFrozen(payoutId, false);
+
+  //  TASK 9: AUDIT LOG
+  await adminAuditLogDb.createLog({
+    adminId,
+    action: "PAYOUT_UNFREEZE",
+    entityType: "PAYOUT",
+    entityId: payoutId,
+    metadata: {},
+  });
+
+  return { message: "Payout unfrozen successfully" };
 };

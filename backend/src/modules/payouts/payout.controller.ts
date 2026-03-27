@@ -5,6 +5,8 @@ import {
   listAllPayoutsAdminService,
   releasePayoutService,
   cancelPayoutService,
+  freezePayoutService,
+  unfreezePayoutService,
  } from "./payout.service";
 
 
@@ -71,14 +73,38 @@ export const listAllPayoutsAdminController = async (
 };
 
 
+// export const releasePayoutController = async (
+//   req: Request,
+//   res: Response
+// ) => {
+
+//   const payoutId = req.params.id;
+
+//   const payout = await releasePayoutService(payoutId as string);
+
+//   return res.json({
+//     message: "Payout released",
+//     data: payout,
+//   });
+// };
 export const releasePayoutController = async (
   req: Request,
   res: Response
 ) => {
+  const session = await auth.api.getSession({
+    headers: fromNodeHeaders(req.headers),
+  });
+
+  if (!session?.user?.id) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
 
   const payoutId = req.params.id;
-
-  const payout = await releasePayoutService(payoutId as string);
+// const adminId = session.user.id;
+  const payout = await releasePayoutService(
+    payoutId as string,
+    session.user.id //  PASS ADMIN ID
+  );
 
   return res.json({
     message: "Payout released",
@@ -104,3 +130,42 @@ export const cancelPayoutController = async (
 
 
 
+export const freezePayoutController = async (
+  req: Request<{ id: string }>,
+  res: Response
+) => {
+  const session = await auth.api.getSession({
+    headers: fromNodeHeaders(req.headers),
+  });
+
+  if (!session?.user?.id) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const result = await freezePayoutService({
+    payoutId: req.params.id,
+    adminId: session.user.id,
+  });
+
+  return res.json(result);
+};
+
+export const unfreezePayoutController = async (
+  req: Request<{ id: string }>,
+  res: Response
+) => {
+  const session = await auth.api.getSession({
+    headers: fromNodeHeaders(req.headers),
+  });
+
+  if (!session?.user?.id) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const result = await unfreezePayoutService({
+    payoutId: req.params.id,
+    adminId: session.user.id,
+  });
+
+  return res.json(result);
+};

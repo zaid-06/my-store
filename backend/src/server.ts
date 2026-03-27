@@ -10,7 +10,7 @@ function startServer() {
     app.listen(env.PORT, () => {
       console.log(`🚀 Server running on port ${env.PORT}`);
 
-      // ✅ Start background job runner AFTER server starts
+      // Start background job runner AFTER server starts
       startJobRunner();
     });
   } catch (error) {

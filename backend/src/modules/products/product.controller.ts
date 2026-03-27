@@ -223,6 +223,40 @@ export const updateProductController = async (
 
 };
 // Delete Product  Controller
+// export const deleteProductController = async (
+//   req: Request,
+//   res: Response
+// ) => {
+//   const session = await auth.api.getSession({
+//     headers: fromNodeHeaders(req.headers),
+//   });
+
+//   if (!session?.user?.id) {
+//     return res.status(401).json({ error: "Unauthorized" });
+//   }
+
+//   const store = await storeService.getStoreByUserId(session.user.id);
+//   if (!store) {
+//     return res.status(400).json({ error: "Store not found" });
+//   }
+
+//   const productId = req.params.id as string;
+
+//   const deleted = await productService.softDeleteProduct({
+//     productId,
+//     storeId: store.id,
+//   });
+
+//   if (!deleted) {
+//     return res.status(404).json({ error: "Product not found" });
+//   }
+
+//   return res.json({
+//     success: true,
+//     message: "Product deleted successfully",
+//   });
+// };
+
 export const deleteProductController = async (
   req: Request,
   res: Response
@@ -236,27 +270,23 @@ export const deleteProductController = async (
   }
 
   const store = await storeService.getStoreByUserId(session.user.id);
+
   if (!store) {
     return res.status(400).json({ error: "Store not found" });
   }
 
   const productId = req.params.id as string;
 
-  const deleted = await productService.softDeleteProduct({
+  await productService.softDeleteProduct({
     productId,
     storeId: store.id,
   });
-
-  if (!deleted) {
-    return res.status(404).json({ error: "Product not found" });
-  }
 
   return res.json({
     success: true,
     message: "Product deleted successfully",
   });
 };
-
 
 
 // Add Variant Controller

@@ -16,6 +16,8 @@ import { findOrderById } from "../orders/order.db";
 import { dbGetStoreByUserId } from "../stores/store.db";
 import { ApiError } from "../../shared/api-error";
 import * as jobDb from "../jobs/job.db";
+import * as adminAuditLogDb from "../admin/admin-audit.db"
+import { assertStoreNotSuspended} from "../../guards/store.guard";
 
 export const sendMessageForOrderService = async ({
   orderId,
@@ -260,9 +262,7 @@ export const sendCreatorMessageService = async ({
   }
 
   // TASK 9: BLOCK IF SUSPENDED
-  if (store.isSuspended) {
-    throw new ApiError("Store is suspended. Messaging disabled", 403);
-  }
+  assertStoreNotSuspended(store);
 
   // 2. find conversation
   const conversation = await findConversationById(conversationId);
@@ -274,6 +274,17 @@ export const sendCreatorMessageService = async ({
   // 3. store isolation check
   if (conversation.storeId !== store.id) {
     throw new ApiError("Access denied to this conversation", 403);
+  }
+   //  NEW: FETCH ORDER
+  const order = await findOrderById(conversation.orderId);
+
+  if (!order) {
+    throw new ApiError("Order not found", 404);
+  }
+
+  //  TASK 9: BLOCK IF ORDER CANCELLED
+  if (order.status === "CANCELLED") {
+    throw new ApiError("Cannot message cancelled order", 400);
   }
 
   // 4. create message
@@ -331,8 +342,16 @@ export const getAdminConversationService = async (
 };
 
 
+export const softDeleteMessageService = async ({
+  messageId,
+  adminId,
+  isAdmin = false,
+}: {
+  messageId: string;
+  adminId?: string;
+  isAdmin?: boolean;
+}) => {
 
-export const softDeleteMessageService = async (messageId: string) => {
   const message = await findMessageById(messageId);
 
   if (!message) {
@@ -344,6 +363,17 @@ export const softDeleteMessageService = async (messageId: string) => {
   }
 
   const updated = await softDeleteMessageById(messageId);
+
+  // 🔥 TASK 9: LOG ONLY IF ADMIN
+  if (isAdmin && adminId) {
+    await adminAuditLogDb.createLog({
+      adminId,
+      action: "MESSAGE_DELETE",
+      entityType: "MESSAGE",
+      entityId: messageId,
+      metadata: {},
+    });
+  }
 
   return updated;
 };

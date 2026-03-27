@@ -1,4 +1,4 @@
-import { and, eq, isNull, gte, lte } from "drizzle-orm";
+import { and, eq, isNull, gte, lte, notInArray } from "drizzle-orm";
 import { stores } from "../stores/store.schema";
 import { buyers} from "./order.schema";
 import {  orders } from "./order.schema";
@@ -240,3 +240,25 @@ export const findAllOrders = async ({
   });
 };
 
+export const findActiveOrdersByProductId = async (productId: string) => {
+  return db.query.orders.findMany({
+    where: and(
+      eq(orders.productId, productId),
+      notInArray(orders.status, ["CANCELLED", "RETURNED", "DELIVERED"])
+    ),
+  });
+};
+
+export const findOrdersByVariantId = async (variantId: string) => {
+  return db.query.orders.findMany({
+    where: eq(orders.variantId, variantId),
+  });
+};
+
+export const hasOrdersForVariant = async (variantId: string) => {
+  const result = await db.query.orders.findFirst({
+    where: eq(orders.variantId, variantId),
+  });
+
+  return !!result;
+};

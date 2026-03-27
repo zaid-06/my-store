@@ -20,7 +20,9 @@ import {
 import { 
   listAllPayoutsAdminController, 
   releasePayoutController,
-  cancelPayoutController
+  cancelPayoutController,
+  freezePayoutController,
+  unfreezePayoutController
 
  } from "../payouts/payout.controller";
 import { getAllJobsController } from "../jobs/job.controller";
@@ -146,4 +148,26 @@ adminRoutes.patch(
   requireRole(Role.ADMIN),
   unsuspendStoreController
 );
+// freeze 
+adminRoutes.patch(
+  "/payouts/:id/freeze",
+   requireAuth,
+  requireRole(Role.ADMIN),
+  freezePayoutController
+);
+adminRoutes.patch(
+  "/payouts/:id/freeze",
+   requireAuth,
+  requireRole(Role.ADMIN),
+  freezePayoutController
+);
+
+
+adminRoutes.patch(
+  "/payouts/:id/unfreeze",
+  requireAuth,
+  requireRole(Role.ADMIN),
+  unfreezePayoutController
+);
 export default adminRoutes;
+

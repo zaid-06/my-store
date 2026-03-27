@@ -1,0 +1,1 @@
+ALTER TABLE "payouts" ADD COLUMN "is_frozen" boolean DEFAULT false;

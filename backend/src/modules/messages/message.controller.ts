@@ -360,11 +360,14 @@ export const softDeleteMessage = async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    //  validate params
     const parsed = messageParamSchema.parse(req.params);
     const { messageId } = parsed;
 
-    const result = await softDeleteMessageService(messageId);
+    const result = await softDeleteMessageService({
+      messageId,
+      adminId: session.user.id,
+      isAdmin: true, //  mark as admin route
+    });
 
     return res.json({
       message: "Message deleted successfully",
@@ -372,7 +375,6 @@ export const softDeleteMessage = async (req: Request, res: Response) => {
     });
 
   } catch (err: any) {
-
     if (err instanceof ZodError) {
       return res.status(400).json({
         error: err.issues[0].message,

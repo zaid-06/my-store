@@ -666,3 +666,70 @@ We use a simple polling-based worker (runs every 30s) instead of cron/queues to 
 * No job prioritization
 * No external queue (e.g., Redis/Bull)
 * Not optimized for high scale (yet)
+
+
+
+#  System Safeguards & Features
+##   Store Suspension
+* Suspended stores cannot:
+  * Create/update products
+  * Create orders
+  * Send messages
+  * Trigger payouts
+* Controlled via admin endpoints
+
+##  Payout Freeze
+* Frozen payouts:
+  *  Cannot be released
+  *  Cannot be modified
+  *  Cannot be cancelled
+
+##  Audit Logging
+* Tracks:
+  * Admin actions (store suspend/unsuspend)
+  * Order status changes
+  * Refunds
+  * Payout actions
+* Ensures traceability and accountability
+
+##  Order Integrity
+* Enforced transitions:
+  * PAID → SHIPPED
+  * SHIPPED → DELIVERED
+* Invalid transitions are blocked
+* Admin override allowed (with logs)
+
+##  Rate Limiting
+* Applied to:
+  * Order creation
+  * Messaging
+* Limit: 10 requests / minute / IP
+* In-memory (no Redis)
+
+##  Data Consistency Rules
+* Cannot delete:
+  * tore with payouts
+  * Product with active orders
+  * Variant used in orders
+* Prevents broken relationships
+
+##  Download Protection
+* Blocked if:
+  * Order is cancelled
+  * Order fully refunded
+  * Token expired / limit reached
+
+##  Health Endpoint
+```
+GET /v1/api/health
+```
+Response:
+```
+{
+  "status": "ok",
+  "db": "connected",
+  "jobs": "running",
+  "version": "v1"
+}
+```
+---

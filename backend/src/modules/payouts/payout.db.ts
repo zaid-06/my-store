@@ -236,3 +236,20 @@ export const findPayoutWithCreator = async (payoutId: string) => {
   });
 };
 
+export const setPayoutFrozen = async (
+  payoutId: string,
+  isFrozen: boolean
+) => {
+  return db
+    .update(payouts)
+    .set({
+      isFrozen,
+      updatedAt: new Date(),
+    })
+    .where(eq(payouts.id, payoutId));
+};
+export const findPayoutsByStoreId = async (storeId: string) => {
+  return db.query.payouts.findMany({
+    where: eq(payouts.storeId, storeId),
+  });
+};

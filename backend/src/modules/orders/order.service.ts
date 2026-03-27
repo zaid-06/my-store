@@ -4,6 +4,7 @@ import * as orderDb from "./order.db";
 import { dbGetStoreByUserId } from "../stores/store.db";
 import * as jobDb from "../jobs/job.db"; 
 import { createPayoutForOrderService } from "../payouts/payout.service";
+import * as adminAuditLogDb from "../admin/admin-audit.db";
 type CreateOrderInput = {
   productId: string;
   variantId: string;
@@ -15,6 +16,7 @@ type CreateOrderInput = {
   paymentMethod: "ONLINE" | "COD";
 };
 import { adjustPayoutAfterRefund } from "../payouts/payout.service";
+import { assertStoreNotSuspended } from "../../guards/store.guard";
 export const createOrder = async (input: CreateOrderInput) => {
   const {
     productId,
@@ -27,7 +29,7 @@ export const createOrder = async (input: CreateOrderInput) => {
     paymentMethod,
   } = input;
 
-// Product Validation
+ // Product Validation
   const product = await orderDb.findPublishedProductForOrder(productId);
 
   if (!product) {
@@ -49,10 +51,10 @@ export const createOrder = async (input: CreateOrderInput) => {
     throw new ApiError("Store is in vacation mode", 400);
   }
   //  TASK 9 (VERY IMPORTANT)
-  if (store.isSuspended) {
-    throw new ApiError("Store is suspended. Orders are disabled", 403);
-  }
-    
+  // if (store.isSuspended) {
+  //   throw new ApiError("Store is suspended. Orders are disabled", 403);
+  // }
+  assertStoreNotSuspended(store);
 
   // Variant Validation
   const variant = await orderDb.findVariantForOrder(
@@ -187,7 +189,8 @@ export const getCreatorOrder = async ({
 type UpdateOrderStatusInput = {
   creatorId: string;
   orderId: string;
-  newStatus: string;
+  // newStatus: string;
+  newStatus: "PENDING" | "PAID" | "SHIPPED" | "DELIVERED" | "RETURNED" | "CANCELLED";
 };
 
 const allowedTransitions: Record<string, string[]> = {
@@ -242,11 +245,25 @@ export const updateCreatorOrderStatus = async ({
 
   );
 
-  
- 
-  if (newStatus === "DELIVERED") {
+  if (newStatus === "DELIVERED" && currentStatus !== "DELIVERED") {
     await createPayoutForOrderService(orderId);
   }
+  // if (newStatus === "DELIVERED") {
+  //   await createPayoutForOrderService(orderId);
+  // }
+
+  //  AUDIT LOG (Task 9 REQUIRED)
+  await adminAuditLogDb.createLog({
+    adminId: creatorId,
+    action: "ORDER_STATUS_UPDATED",
+    entityType: "ORDER",
+    entityId: orderId,
+    metadata: {
+      from: currentStatus,
+      to: newStatus,
+    },
+  });
+
     await jobDb.createJob({
     type: "EMAIL",
     payload: {
@@ -326,6 +343,18 @@ export const markOrderRefund = async ({
     orderId,
     refundAmount
   );
+  // TASK 9: AUDIT LOG (ONLY ADMIN)
+  if (role === "ADMIN") {
+    await adminAuditLogDb.createLog({
+      adminId: userId,
+      action: "ORDER_REFUND",
+      entityType: "ORDER",
+      entityId: orderId,
+      metadata: {
+        refundAmount,
+      },
+    });
+  }
 
   /*
   Notify payout system

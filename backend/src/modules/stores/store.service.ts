@@ -11,7 +11,7 @@ import {
 } from "./store.db";
 
 import * as storeDb from "./store.db";
-
+import * as payoutDb from "../payouts/payout.db";
 import { ApiError } from "../../shared/api-error";
 
 import * as adminAuditLogDb from "../admin/admin-audit.db";
@@ -116,7 +116,7 @@ export const updateStoreService = async (
 };
 
 
-export const deleteMyStoreService = async (userId: string) => {
+export const  deleteMyStoreService = async (userId: string) => {
   const store = await storeDb.dbGetStoreByUserId(userId);
 
   if (!store) {
@@ -126,6 +126,14 @@ export const deleteMyStoreService = async (userId: string) => {
   // already deleted → idempotent behavior 
   if (store.deletedAt) {
     return { message: "Store already deleted" };
+  }
+  const payouts = await payoutDb.findPayoutsByStoreId(store.id);
+
+  if (payouts.length > 0) {
+    throw new ApiError(
+      "Cannot delete store with existing payouts",
+      400
+    );
   }
 
   await storeDb.dbSoftDeleteStoreByUserId(userId);
@@ -165,6 +173,14 @@ export const restoreStore = async (id: string) => {
   const store = await dbGetStoreById(id);
   if (!store || store.deletedAt == null) return null;
 
+  const existing = await dbGetStoreByUsername(store.username);
+
+  if (existing && existing.id !== id) {
+    throw new ApiError(
+      "Username already taken. Cannot restore store",
+      400
+    );
+  }
   const [restored] = await dbRestoreStoreById(id);
   return restored;
 };

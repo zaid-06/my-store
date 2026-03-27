@@ -4,8 +4,8 @@ import { createOrderController } from "./order.controller";
 export const orderRoutes = Router();
 
 import { Role } from "../../types/roles";
+import {rateLimiter} from "../../middlewares/rateLimiter";
 
-orderRoutes.post("/", createOrderController);
 
 import {
   getCreatorOrdersController,
@@ -15,6 +15,10 @@ import {
  } from "./order.controller";
 import { requireAuth, requireRole } from "../auth/auth.middleware";
 
+orderRoutes.post("/",
+   rateLimiter,
+   createOrderController
+);
 
 orderRoutes.get(
   "/",

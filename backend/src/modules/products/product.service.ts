@@ -1,7 +1,8 @@
 
 
 import { ApiError } from "../../shared/api-error";
-import { findProductByIdAndStoreId } from "./product.db";
+import { assertStoreNotSuspended} from "../../guards/store.guard";
+import {findProductByIdAndStoreId} from "./product.db";
 import {
   products,
   categories,
@@ -36,7 +37,7 @@ import {
 import * as productDb from "./product.db";
 
 import * as storeDb from "../stores/store.db";
-
+import * as orderDb from "../orders/order.db";
 export const createProduct = async (data: {
   storeId: string;
   title: string;
@@ -52,9 +53,7 @@ export const createProduct = async (data: {
     throw new ApiError("Store not found", 404);
   }
 
-  if (store.isSuspended) {
-    throw new ApiError("Store is suspended", 403);
-  }
+  assertStoreNotSuspended(store);
 
   // optional but good (already handled in some flows)
   if (!store.isPublic) {
@@ -145,9 +144,7 @@ export const updateProductByIdForOwner = async ({
     throw new ApiError("Store not found", 404);
   }
 
-  if (store.isSuspended) {
-    throw new ApiError("Store is suspended", 403);
-  }
+  assertStoreNotSuspended(store);
   const product = await findProductByIdAndStore(productId, storeId);
   if (!product) return null;
 
@@ -191,6 +188,26 @@ export const updateProductByIdForOwner = async ({
 
 
 
+// export const softDeleteProduct = async ({
+//   productId,
+//   storeId,
+// }: {
+//   productId: string;
+//   storeId: string;
+// }) => {
+//    //  Check ownership
+//   // const product = await findProductByIdAndStore({
+//   //   productId,
+//   //   storeId,
+//   // });
+
+//   // if (!product) return null;
+
+//   // //  Already deleted
+//   // if (product.deletedAt) return null;
+//   return await softDeleteProductDB({ productId, storeId });
+// };
+
 export const softDeleteProduct = async ({
   productId,
   storeId,
@@ -198,16 +215,33 @@ export const softDeleteProduct = async ({
   productId: string;
   storeId: string;
 }) => {
-   //  Check ownership
-  // const product = await findProductByIdAndStore({
-  //   productId,
-  //   storeId,
-  // });
 
-  // if (!product) return null;
+  //  Check ownership
+  const product = await productDb.findProductByIdAndStoreId({
+    productId,
+    storeId,
+  });
 
-  // //  Already deleted
-  // if (product.deletedAt) return null;
+  if (!product) {
+    throw new ApiError("Product not found", 404);
+  }
+
+  // 2 Already deleted
+  if (product.deletedAt) {
+    throw new ApiError("Product already deleted", 400);
+  }
+
+  // CHECK: active orders
+  const orders = await orderDb.findActiveOrdersByProductId(productId);
+
+  if (orders.length > 0) {
+    throw new ApiError(
+      "Cannot delete product with active orders",
+      400
+    );
+  }
+
+  //  Soft delete
   return await softDeleteProductDB({ productId, storeId });
 };
 
@@ -320,6 +354,13 @@ export const deleteVariant = async ({
   if (product.status === "published" && isLastVariant) {
     return "LAST_VARIANT_PUBLISHED";
   }
+  //  NEW: CHECK IF VARIANT USED IN ORDERS
+  const hasOrders = await orderDb.hasOrdersForVariant(variantId);
+
+  if (hasOrders) {
+    return "VARIANT_IN_USE";
+  }
+
 
   //  Delete variant
   await deleteVariantById(productId, variantId);

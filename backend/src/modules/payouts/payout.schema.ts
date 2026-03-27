@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgEnum, pgTable, uuid, numeric, timestamp, varchar } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, uuid, numeric, timestamp, varchar, boolean } from "drizzle-orm/pg-core";
 import {stores} from "../stores/store.schema";
 
 
@@ -29,7 +29,7 @@ export const payouts = pgTable("payouts", {
   netAmount: numeric("net_amount", { precision: 10, scale: 2 }).notNull(),
 
   status: payoutStatusEnum("status").default("LOCKED").notNull(),
-
+  isFrozen: boolean("is_frozen").default(false),
   eligibleAt: timestamp("eligible_at").notNull(),
 
   releasedAt: timestamp("released_at"),
@@ -62,3 +62,4 @@ export const releasePayoutSchema = z.object({
 export const cancelPayoutSchema = z.object({
   payoutId: z.string().uuid("Invalid payout id"),
 });
+

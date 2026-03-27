@@ -13,10 +13,10 @@ import {orderRoutes} from "./modules/orders/order.routes";
 import downloadRoutes from "./modules/downloads/download.routes";
 import messageRoutes from "./modules/messages/message.routes";
 import  payoutRoutes from "./modules/payouts/payout.routes";
-
+import { healthController } from "./shared/health.controller";
 export const app = express();
 
-// ✅ CORS must come first
+//  CORS must come first
 app.use(
   cors({
     origin: "http://localhost:3000",
@@ -24,13 +24,13 @@ app.use(
   })
 );
 
-// ✅ Body parser
+//  Body parser
 app.use(express.json());
 
-// ✅ Cookie parser (REQUIRED for Better Auth)
+//  Cookie parser (REQUIRED for Better Auth)
 app.use(cookieParser());
 
-// ✅ Routes
+//  Routes
 app.use("/v1/api/auth", authRoutes);
 app.use("/v1/api/users", userRoutes);
 app.use("/v1/api/stores", storeRoutes);
@@ -41,6 +41,6 @@ app.use("/v1/api/download", downloadRoutes);
 app.use("/v1/api/messages", messageRoutes);
 app.use("/v1/api/payouts", payoutRoutes);
 
-
-// ✅ Error handler MUST be last
+app.get("/v1/api/health", healthController);
+//  Error handler MUST be last
 app.use(errorHandler);

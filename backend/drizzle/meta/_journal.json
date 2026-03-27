@@ -99,6 +99,13 @@
       "when": 1774593600805,
       "tag": "0013_kind_stature",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1774605920413,
+      "tag": "0014_rich_morg",
+      "breakpoints": true
     }
   ]
 }

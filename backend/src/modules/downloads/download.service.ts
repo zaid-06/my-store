@@ -34,6 +34,15 @@ export const getDownloadService = async (token: string, req: Request) => {
     throw new ApiError("Order not paid", 400);
   }
 
+  const total = Number(record.order.totalAmount);
+  const refunded = Number(record.order.refundAmount || 0);
+
+  if (refunded >= total) {
+    throw new ApiError(
+      "Download not allowed for fully refunded order",
+      403
+    );
+  }
   // TASK 9: Guardrail (prevent access if refunded fully)
   // if (record.order.status === "REFUNDED") {
   //   throw new ApiError("Download not allowed for refunded order", 403);
