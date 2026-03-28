@@ -49,7 +49,7 @@ export const createPayoutForOrderService = async (orderId: string) => {
   const holdDays = env.PAYOUT_HOLD_DAYS;
 
   const eligibleAt = new Date();
-  eligibleAt.setDate(eligibleAt.getDate() + 0 ); // 0 is a temp value for testing
+  eligibleAt.setDate(eligibleAt.getDate() + holdDays ); // 0 is a temp value for testing
 
   const payout = await payoutDb.createPayout({
     storeId: order.storeId,
