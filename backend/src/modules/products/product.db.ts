@@ -78,7 +78,27 @@ export const findProductById = async (productId: string) => {
     );
 };
 
-export const findProductByIdAndStoreId = async ({
+// export const findProductByIdAndStoreId = async ({
+//   productId,
+//   storeId,
+// }: {
+//   productId: string;
+//   storeId: string;
+// }) => {
+//   const [product] = await db
+//     .select()
+//     .from(products)
+//     .where(
+//       and(
+//         eq(products.id, productId),
+//         eq(products.storeId, storeId),
+//         isNull(products.deletedAt)
+//       )
+//     );
+
+//   return product ?? null;
+// };\
+export const findActiveProductByIdAndStoreId = async ({
   productId,
   storeId,
 }: {
@@ -92,13 +112,33 @@ export const findProductByIdAndStoreId = async ({
       and(
         eq(products.id, productId),
         eq(products.storeId, storeId),
-        isNull(products.deletedAt)
+        isNull(products.deletedAt) // 
       )
     );
 
   return product ?? null;
 };
+export const findProductByIdAndStoreId = async ({
+  productId,
+  storeId,
+}: {
+  productId: string;
+  storeId: string;
+}) => {
+  const [product] = await db
+    .select()
+    .from(products)
+    .where(
+      and(
+        eq(products.id, productId),
+        eq(products.storeId, storeId)
+        // ❌ REMOVE THIS:
+        // isNull(products.deletedAt)
+      )
+    );
 
+  return product ?? null;
+};
 
 
 // Get product by id + store (ownership check)

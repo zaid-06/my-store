@@ -2,7 +2,7 @@
 
 import { ApiError } from "../../shared/api-error";
 import { assertStoreNotSuspended} from "../../guards/store.guard";
-import {findProductByIdAndStoreId} from "./product.db";
+import { findProductByIdAndStoreId} from "./product.db";
 import {
   products,
   categories,
@@ -30,6 +30,7 @@ import {
   insertProductMedia,
   findProductForMediaRemoval,
   deleteProductMedia,
+  findActiveProductByIdAndStoreId,
 } from "./product.db";
 
 
@@ -115,7 +116,7 @@ export const getProductByIdForOwner = async ({
 
   // apply rule 
   
-  const product = await findProductByIdAndStoreId({
+  const product = await findActiveProductByIdAndStoreId({
     productId,
     storeId,
   });

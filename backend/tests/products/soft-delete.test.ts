@@ -64,45 +64,63 @@ describe("Soft Delete Behavior", () => {
   });
 
   // ❌ Should not delete product of another store
-  it("should NOT delete product of another store", async () => {
-    const [product] = await db
-      .insert(products)
-      .values({
-        storeId: otherStoreId,
-        title: "Other Store Product",
-        status: "draft",
-        deletedAt: null,
-      })
-      .returning();
+  // it("should NOT delete product of another store", async () => {
+  //   const [product] = await db
+  //     .insert(products)
+  //     .values({
+  //       storeId: otherStoreId,
+  //       title: "Other Store Product",
+  //       status: "draft",
+  //       deletedAt: null,
+  //     })
+  //     .returning();
 
-    const result = await softDeleteProduct({
+  //   const result = await softDeleteProduct({
+  //     productId: product.id,
+  //     storeId, // wrong store
+  //   });
+
+  //   expect(result).toBeNull();
+  // });
+
+  it("should NOT delete product of another store", async () => {
+  const [product] = await db
+    .insert(products)
+    .values({
+      storeId: otherStoreId,
+      title: "Other Store Product",
+      status: "draft",
+      deletedAt: null,
+    })
+    .returning();
+
+  await expect(
+    softDeleteProduct({
       productId: product.id,
       storeId, // wrong store
-    });
+    })
+  ).rejects.toThrow("Product not found");
+});
 
-    expect(result).toBeNull();
-  });
+ // ❌ Should not delete already deleted product
+it("should NOT delete already deleted product", async () => {
+  const [product] = await db
+    .insert(products)
+    .values({
+      storeId,
+      title: "Already Deleted",
+      status: "draft",
+      deletedAt: new Date(),
+    })
+    .returning();
 
-  // ❌ Should not delete already deleted product
-  it("should NOT delete already deleted product", async () => {
-    const [product] = await db
-      .insert(products)
-      .values({
-        storeId,
-        title: "Already Deleted",
-        status: "draft",
-        deletedAt: new Date(),
-      })
-      .returning();
-
-    const result = await softDeleteProduct({
+  await expect(
+    softDeleteProduct({
       productId: product.id,
       storeId,
-    });
-
-    expect(result).toBeNull();
-  });
-
+    })
+  ).rejects.toThrow("Product already deleted");
+});
   // ❌ Deleted product should not be visible publicly
   it("should NOT return deleted product in public API", async () => {
     const [product] = await db
