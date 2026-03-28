@@ -39,63 +39,108 @@ All environment variables are managed via a **single `.env` file in the root**.
 ### `.env.example`
 
 ```env
-# App
-NODE_ENV=development
-PORT=5000
-
-# Database
-DATABASE_URL=postgresql://postgres:postgres@postgres:5432/my_store
-
-# Auth
-BETTERAUTH_SECRET=super-secret-key
+# Backend
+DATABASE_URL=postgresql://mystore_user:mystore_password@postgres:5432/mystore
+BETTERAUTH_SECRET=your-secret-key
 BETTERAUTH_URL=http://localhost:5000
-
+PORT=5000
+NODE_ENV=development
+PLATFORM_COMMISSION_PERCENT=10
+PAYOUT_HOLD_DAYS=0
 
 # Frontend
 NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
 
 Create a .env file from .env.example before running Docker.
 
-
 ```
 
 ## Running the Project
 
 Start everything (frontend + backend + database)
-
 ```
  docker compose up --build
 ```
 
 This will start:
-Frontend → http://localhost:3000
-Backend API → http://localhost:5000
-PostgreSQL → internal Docker network (persistent volume)
+- Frontend → http://localhost:3000  
+- Backend API → http://localhost:5000  
+- PostgreSQL → localhost:5432  
+- pgAdmin → http://localhost:8080  
 
+---
+
+## Database Access (pgAdmin)
+
+You can use pgAdmin to inspect the database.
+
+### Login:
+- Email: admin@example.com  
+- Password: admin  
+
+### Add Server in pgAdmin:
+
+- Host: postgres  
+- Port: 5432  
+- Username: mystore_user  
+- Password: mystore_password  
+- Database: mystore  
+
+## Notes
+
+- PostgreSQL data is persisted using Docker volumes  
+- Backend and frontend support hot-reload via mounted volumes  
+- pgAdmin is optional and only for development/debugging  
+
+---
+## Running Tests
+
+Enter backend container:
+```
+docker exec -it mystore-backend sh
+```
+
+Run all tests (one by one)
+```
+npx vitest run --pool=forks --max-workers=1
+```
+
+Run tests for a specific folder
+```
+npx vitest run tests/folder_name --pool=forks --max-workers=1
+```
+
+## Database Migrations (Backend)
+
+Inside backend container:
+```
+pnpm run db:generate
+pnpm run db:migrate
+```
+
+## Notes
+- Tests are run sequentially to avoid DB conflicts
+- Always run migrations before starting backend if schema changes
 ---
 
 ## Common Commands
 
 Stop containers
-
 ```
 docker compose down
 ```
 
 Stop and remove volumes (reset DB)
-
 ```
 docker compose down -v
 ```
 
 View logs
-
 ```
 docker compose logs -f
 ```
 
 Rebuild containers
-
 ```
 docker compose up --build
 ```
@@ -117,7 +162,7 @@ Designed for reproducible development environments
 
 ---
 
-## Store
+# Store
 
 ### Store lifecycle
 
