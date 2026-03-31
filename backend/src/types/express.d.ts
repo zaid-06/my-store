@@ -1,3 +1,4 @@
+// export {}; 
 import { Role } from "./roles";
 
 declare global {
@@ -6,6 +7,7 @@ declare global {
       user?: {
         id: string;
         role: Role;
+        email: string; 
       };
     }
   }

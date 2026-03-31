@@ -19,7 +19,7 @@ export const app = express();
 //  CORS must come first
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: true , //"http://localhost:3000",
     credentials: true, // required for cookies
   })
 );

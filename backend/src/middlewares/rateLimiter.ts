@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-
+import { ApiError } from "../shared/api-error";
 type RateLimitEntry = {
   count: number;
   startTime: number;
@@ -36,9 +36,9 @@ export const rateLimiter = (
   entry.count++;
 
   if (entry.count > LIMIT) {
-    return res.status(429).json({
-      error: "Too many requests. Try again later.",
-    });
+    return next(
+      new ApiError("Too many requests. Try again later.", 429)
+    );
   }
 
   rateLimitMap.set(ip, entry);

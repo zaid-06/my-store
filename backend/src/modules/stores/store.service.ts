@@ -49,8 +49,8 @@ export const getPublicStoreService = async (username: string) => {
   if (
     !store ||
     !store.isPublic ||
-    store.deletedAt 
-    // store.isSuspended //  Task 9 rule
+    store.deletedAt ||
+    store.isSuspended //  Task 9 rule
   ) {
     throw new ApiError("Store not found", 404);
   }
@@ -169,9 +169,36 @@ export const listStores = async () => {
   return dbListStores();
 };
 
+// export const restoreStore = async (id: string) => {
+//   const store = await dbGetStoreById(id);
+//   if (!store || store.deletedAt == null) return null;
+
+//   const existing = await dbGetStoreByUsername(store.username);
+
+//   if (existing && existing.id !== id) {
+//     throw new ApiError(
+//       "Username already taken. Cannot restore store",
+//       400
+//     );
+//   }
+//   const [restored] = await dbRestoreStoreById(id);
+//   return restored;
+// };
+
+
 export const restoreStore = async (id: string) => {
   const store = await dbGetStoreById(id);
-  if (!store || store.deletedAt == null) return null;
+
+  if (!store) {
+    throw new ApiError("Store not found", 404);
+  }
+
+  if (!store.deletedAt) {
+    throw new ApiError(
+      "Store is not deleted; only deleted stores can be restored",
+      400
+    );
+  }
 
   const existing = await dbGetStoreByUsername(store.username);
 
@@ -181,7 +208,13 @@ export const restoreStore = async (id: string) => {
       400
     );
   }
+
   const [restored] = await dbRestoreStoreById(id);
+
+  if (!restored) {
+    throw new ApiError("Restore failed", 500);
+  }
+
   return restored;
 };
 

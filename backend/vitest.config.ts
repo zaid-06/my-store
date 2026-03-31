@@ -8,11 +8,11 @@ export default defineConfig({
     environment: "node",
     globals: true,
     include: ["tests/**/*.test.ts"],
-    setupFiles: ["tests/setup.ts"],
+    setupFiles: ["./tests/setup.ts"],
     // setupFiles: ["./tests/setup.ts"],
 
 
-    // ✅ run tests sequentially
+    // run tests sequentially
     pool: "forks",
   },
   resolve: {
@@ -56,7 +56,7 @@ export default defineConfig({
 //     include: ["tests/**/*.test.ts"],
 //     setupFiles: ["tests/setup.ts"],
 
-//     // 🔴 Important: disable parallel workers so DB state is not shared concurrently
+//     //  Important: disable parallel workers so DB state is not shared concurrently
 //     poolOptions: {
 //       threads: {
 //         singleThread: true,

@@ -47,7 +47,7 @@ describe("Dispute Escalation", () => {
       phone: "9999999999",
     });
 
-    expect(result.data.isDisputed).toBe(true);
+    expect(result.isDisputed).toBe(true);
     expect(messageDb.setConversationDispute).toHaveBeenCalledTimes(1);
   });
 

@@ -1,24 +1,24 @@
 import * as jobDb from "./job.db";
 import * as payoutDb from "../payouts/payout.db";
 import * as emailService from "../email/email.service";
-
+import { logger } from "../../shared/logger";
 const POLLING_INTERVAL = 30 * 1000; // 30 seconds
 
 export const startJobRunner = () => {
-  console.log(" ************** Job Runner started.............");
-
+  logger.info(" ************** Job Runner started.............");
+  
   setInterval(async () => {
     try {
       const jobs = await jobDb.getPendingJobs();
-         console.log("in job runner  .*********************************")
+         logger.info("in job runner  .*********************************")
+
 
       for (const job of jobs) {
         await processJob(job);
-         console.log("in job runner, I am in the for loop ...........................................")
       }
 
     } catch (err) {
-      console.error(" Job runner failed:", err);
+      logger.error(" Job runner failed:", err);
     }
   }, POLLING_INTERVAL);
 };
@@ -46,7 +46,8 @@ export const processJob = async (job: any) => {
     await jobDb.markJobCompleted(job.id);
 
   } catch (error: any) {
-    console.error(`Job failed: ${job.id}`, error);
+    logger.error(`Job failed: ${job.id}`, error);
+    
 
     const attempts = job.attempts + 1;
 

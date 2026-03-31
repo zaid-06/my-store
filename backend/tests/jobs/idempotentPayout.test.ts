@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// ✅ mock modules
+//  mock modules
 vi.mock("../../src/modules/payouts/payout.db", () => ({
   findPayoutById: vi.fn(),
   markPayoutEligible: vi.fn(),
@@ -40,10 +40,10 @@ describe("Idempotent Payout Eligibility Processing", () => {
 
     await jobRunner.processJob(job as any);
 
-    // ✅ should NOT update again
+    //  should NOT update again
     expect(payoutDb.markPayoutEligible).not.toHaveBeenCalled();
 
-    // ✅ but job still completes
+    //  but job still completes
     expect(jobDb.markJobCompleted).toHaveBeenCalledWith("job-idem-1");
   });
 

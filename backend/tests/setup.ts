@@ -1,5 +1,11 @@
 
 
+import dotenv from "dotenv";
+ 
+dotenv.config({ path: ".env.test" });
+
+
+// optional: reset mocks, DB, etc.
 import { beforeAll, beforeEach, afterAll } from "vitest";
 import { db } from "../src/config/db";
 import { downloadLogs, digitalDownloads } from "../src/modules/downloads/download.schema";
@@ -12,8 +18,6 @@ import {
 import { stores } from "../src/modules/stores/store.schema";
 import { orders } from "../src/modules/orders/order.schema";
 import { user } from "../src/modules/users/user.schema"; // agar BetterAuth users table hai
-
-
 beforeAll(async () => {
   // Verify DB connection
   await db.execute(`SELECT 1`);
@@ -22,15 +26,6 @@ beforeAll(async () => {
 beforeEach(async () => {
   //  * IMPORTANT:
   //  * Order matters because of foreign keys
-  await db.delete(downloadLogs);
-  await db.delete(digitalDownloads);
-  await db.delete(orders);
-  await db.delete(productVariants);
-
-  await db.delete(productMedia);
-  await db.delete(products);
-  await db.delete(stores);
-  await db.delete(user); // agar BetterAuth users table hai
 });
 
 afterAll(async () => {

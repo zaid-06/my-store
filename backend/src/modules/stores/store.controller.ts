@@ -6,17 +6,12 @@ import { auth } from "../auth/auth.config";
 //  * Controller to create a new store for the authenticated user
 import { createStoreSchema } from "./store.schema";
 import { ApiError } from "../../shared/api-error";
-
+import { successResponse } from "../../shared/response";
 import { updateStoreSchema } from "./store.schema";
 
 export const createStoreController = async (req: Request, res: Response) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+  const userId = req.user!.id;
 
-  if (!session?.user?.id) {
-    throw new ApiError("Unauthorized", 401);
-  }
 
   //  ZOD VALIDATION
   const parsed = createStoreSchema.safeParse(req.body);
@@ -27,48 +22,42 @@ export const createStoreController = async (req: Request, res: Response) => {
 
   // CALL SERVICE (NO LOGIC HERE)
   const store = await storeService.createStoreService(
-    session.user.id,
+    userId,
     parsed.data
   );
 
-  return res.json(store);
+  return res.json(successResponse(store));
 };
 
 
 
 //  * Controller to get the authenticated user's store
 export const getMyStoreController = async (req: Request, res: Response) => {
-  console.log("in getMyStoreController...............")
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+    const userId = req.user!.id;
 
-  if (!session?.user?.id) {
-    throw new ApiError("Unauthorized", 401);
-  }
-  const store = await storeService.getStoreByUserId(session.user.id);
-  return res.json(store);
+  const store = await storeService.getStoreByUserId(userId);
+  return res.json(successResponse(store));
 };
 
 //  * Controller to get a public store by username
 export const getPublicStoreController = async (
   req: Request<{ username: string }>,
   res: Response
-) => {
+  ) => {
   const store = await storeService.getPublicStoreService(
     req.params.username
   );
 
-  return res.json(store);
+  return res.json(successResponse(store));
 };
 
 export const updateStoreController = async (req: Request, res: Response) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+  
 
-  if (!session?.user?.id) {
-    throw new ApiError("Unauthorized", 401);
+  const userId = req.user!.id;
+   // 🔥 enforce immutability BEFORE parsing
+  if ("username" in req.body) {
+    throw new ApiError("Username cannot be changed", 400);
   }
 
   // ZOD VALIDATION (partial update)
@@ -79,27 +68,21 @@ export const updateStoreController = async (req: Request, res: Response) => {
   }
 
   const store = await storeService.updateStoreService(
-    session.user.id,
+    userId,
     parsed.data
   );
 
-  return res.json(store);
+  return res.json(successResponse(store));
 };
 
 export const deleteMyStoreController = async (req: Request, res: Response) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
-
-  if (!session?.user?.id) {
-    throw new ApiError("Unauthorized", 401);
-  }
+  const userId = req.user!.id;
 
   const result = await storeService.deleteMyStoreService(
-    session.user.id
+    userId
   );
 
-  return res.status(200).json(result);
+  return res.status(200).json(successResponse(result));
 };
 
 
@@ -108,43 +91,35 @@ export const suspendStoreController = async (
   req: Request<{ id: string }, {}, { reason: string }>,
   res: Response
 ) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+  const userId = req.user!.id;
 
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  const { reason } = req.body;
 
-  if (!req.body?.reason) {
-    return res.status(400).json({ error: "Suspension reason required" });
+  if (!reason || !reason.trim()) {
+    throw new ApiError("Suspension reason is required", 400);
   }
 
   const result = await storeService.suspendStoreService({
     storeId: req.params.id,
-    reason: req.body.reason,
-    adminId: session.user.id,
+    reason: reason.trim(),
+    adminId: userId,
   });
 
-  return res.json(result);
+  return res.json(successResponse(result));
 };
 
 export const unsuspendStoreController = async (
   req: Request<{ id: string }>,
   res: Response
 ) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+  const userId = req.user!.id;
 
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+
 
   const result = await storeService.unsuspendStoreService({
     storeId: req.params.id,
-    adminId: session.user.id,
+    adminId: userId,
   });
 
-  return res.json(result);
+  return res.json(successResponse(result));
 };

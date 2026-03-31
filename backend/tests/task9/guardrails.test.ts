@@ -1,19 +1,15 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 
-// ✅ SINGLE MOCK (IMPORTANT)
 vi.mock("@/modules/downloads/download.db", () => ({
   getDownloadByToken: vi.fn(),
   incrementDownloadCount: vi.fn(),
   logDownload: vi.fn(),
 }));
 
-// 👉 Only mock if your service actually imports something for file
-// If you DON'T have getProductFile, you can REMOVE this mock
 vi.mock("@/modules/products/product.db", () => ({
   getProductFile: vi.fn(),
 }));
 
-// ✅ IMPORT AFTER MOCKS
 import * as downloadDb from "@/modules/downloads/download.db";
 import * as productDb from "@/modules/products/product.db";
 
@@ -25,9 +21,6 @@ describe("Task 9 - Download Guardrail (Refund)", () => {
     vi.restoreAllMocks();
   });
 
-  // =========================
-  // ❌ BLOCK FULLY REFUNDED
-  // =========================
   it("should block download if order is fully refunded", async () => {
 
     (downloadDb.getDownloadByToken as any).mockResolvedValue({
@@ -39,7 +32,7 @@ describe("Task 9 - Download Guardrail (Refund)", () => {
       order: {
         status: "PAID",
         totalAmount: "100",
-        refundAmount: "100", // 🔥 fully refunded
+        refundAmount: "100", //  fully refunded
       },
     });
 
@@ -51,9 +44,6 @@ describe("Task 9 - Download Guardrail (Refund)", () => {
     ).rejects.toThrow("fully refunded");
   });
 
-  // =========================
-  // ✅ ALLOW PARTIAL REFUND
-  // =========================
  
 
 });

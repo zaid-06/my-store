@@ -20,9 +20,6 @@ describe("Task 9 - Rate Limiter", () => {
     next = vi.fn();
   });
 
-  // =========================
-  // 🧪 ALLOW UNDER LIMIT
-  // =========================
   it("should allow requests under limit", () => {
     for (let i = 0; i < 10; i++) {
       rateLimiter(req, res, next);
@@ -31,25 +28,26 @@ describe("Task 9 - Rate Limiter", () => {
     expect(next).toHaveBeenCalledTimes(10);
   });
 
-  // =========================
-  // 🧪 BLOCK AFTER LIMIT
-  // =========================
   it("should block requests after limit exceeded", () => {
-    for (let i = 0; i < 11; i++) {
-      rateLimiter(req, res, next);
-    }
+  const next = vi.fn();
 
-    expect(res.status).toHaveBeenCalledWith(429);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        error: expect.stringContaining("Too many requests"),
-      })
-    );
-  });
+  req.ip = "127.0.0.1";
 
-  // =========================
-  // 🧪 DIFFERENT IP SHOULD NOT BLOCK
-  // =========================
+  for (let i = 0; i < 11; i++) {
+    rateLimiter(req, res, next);
+  }
+
+  expect(next).toHaveBeenCalledWith(
+    expect.objectContaining({
+      message: expect.stringContaining("Too many requests"),
+      statusCode: 429,
+    })
+  );
+
+  expect(res.status).not.toHaveBeenCalled();
+  expect(res.json).not.toHaveBeenCalled();
+});
+
   it("should track limits per IP", () => {
     const req2 = { ip: "192.168.0.1" };
 
@@ -63,9 +61,6 @@ describe("Task 9 - Rate Limiter", () => {
     expect(next).toHaveBeenCalled();
   });
 
-  // =========================
-  // 🧪 RESET AFTER TIME WINDOW
-  // =========================
   it("should reset after time window", () => {
     vi.useFakeTimers();
 

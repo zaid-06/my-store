@@ -8,7 +8,8 @@ import {
 } from "./admin.stores.controller";
 import { listAdminOrdersController,
   adminOverrideOrderStatusController,
-  adminSoftDeleteOrderController  
+  adminSoftDeleteOrderController ,
+  adminMarkOrderRefundController 
 } from "./admin.order.controller";
 import { listAllDownloadsController } from "../downloads/download.controller";
 import {
@@ -50,6 +51,13 @@ adminRoutes.patch(
   requireAuth,
   requireRole(Role.ADMIN),
   adminOverrideOrderStatusController
+);
+
+adminRoutes.post(
+  "/orders/:id/refund",
+  requireAuth,
+  requireRole(Role.ADMIN),
+  adminMarkOrderRefundController
 );
 
 

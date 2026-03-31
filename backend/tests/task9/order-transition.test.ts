@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 
-// 🔥 MOCKS
 vi.mock("@/modules/stores/store.db", () => ({
   dbGetStoreByUserId: vi.fn(),
 }));
@@ -22,7 +21,6 @@ vi.mock("@/modules/jobs/job.db", () => ({
   createJob: vi.fn(),
 }));
 
-// ✅ IMPORT AFTER MOCKS
 import * as storeDb from "@/modules/stores/store.db";
 import * as orderDb from "@/modules/orders/order.db";
 import * as payoutService from "@/modules/payouts/payout.service";
@@ -42,9 +40,6 @@ describe("Task 9 - Order Transition Restrictions", () => {
     buyerEmail: "test@test.com",
   };
 
-  // =========================
-  // 🧪 VALID TRANSITION
-  // =========================
   it("should allow valid transition PAID → SHIPPED", async () => {
 
     (storeDb.dbGetStoreByUserId as any).mockResolvedValue({
@@ -67,9 +62,6 @@ describe("Task 9 - Order Transition Restrictions", () => {
     expect(result.status).toBe("SHIPPED");
   });
 
-  // =========================
-  // 🧪 INVALID TRANSITION
-  // =========================
   it("should block invalid transition PAID → DELIVERED", async () => {
 
     (storeDb.dbGetStoreByUserId as any).mockResolvedValue({
@@ -87,9 +79,6 @@ describe("Task 9 - Order Transition Restrictions", () => {
     ).rejects.toThrow("Invalid status transition");
   });
 
-  // =========================
-  // 🧪 TRIGGER PAYOUT ON DELIVERED
-  // =========================
   it("should create payout when status becomes DELIVERED", async () => {
 
     (storeDb.dbGetStoreByUserId as any).mockResolvedValue({
@@ -115,9 +104,6 @@ describe("Task 9 - Order Transition Restrictions", () => {
     expect(payoutService.createPayoutForOrderService).toHaveBeenCalledWith("order_1");
   });
 
-  // =========================
-  // 🧪 AUDIT LOG CREATED
-  // =========================
   it("should create audit log on status update", async () => {
 
     (storeDb.dbGetStoreByUserId as any).mockResolvedValue({

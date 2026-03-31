@@ -72,7 +72,7 @@ describe("Full Refund Cancellation", () => {
 
   it("should do nothing if payout does not exist", async () => {
 
-    vi.mocked(payoutDb.findPayoutByOrderId).mockResolvedValue(null);
+    vi.mocked(payoutDb.findPayoutByOrderId).mockResolvedValue(null as any);
 
     await payoutService.adjustPayoutAfterRefund("o4", 1000);
 

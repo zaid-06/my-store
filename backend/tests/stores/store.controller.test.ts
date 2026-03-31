@@ -8,6 +8,7 @@ import {
   deleteMyStoreController,
 } from "../../src/modules/stores/store.controller";
 
+import { ApiError } from "@/shared/api-error";
 const mockAuth = vi.hoisted(() => ({
   api: {
     getSession: vi.fn(),
@@ -53,116 +54,113 @@ describe("Store controller", () => {
 
   describe("Store creation", () => {
    
-    it("creates store when user has no store and username is free", async () => {
-      const userId = "user-1";
+   it("creates store when user has no store and username is free", async () => {
+  const userId = "user-1";
 
-      const created = {
-        id: "store-1",
-        userId,
-        username: "mystore",
-        name: "My Store",
-        description: null,
-        isSuspended: false,
-        isPublic: true,
-        deletedAt: null,
-      };
+  const created = {
+    id: "store-1",
+    userId,
+    username: "mystore",
+    name: "My Store",
+    description: null,
+    isSuspended: false,
+    isPublic: true,
+    deletedAt: null,
+  };
 
-      mockAuth.api.getSession.mockResolvedValue({ user: { id: userId } });
+  //  remove this (not used)
+  // mockAuth.api.getSession.mockResolvedValue({ user: { id: userId } });
 
-      mockStoreService.getStoreByUserId.mockResolvedValue(null);
-      mockStoreService.getStoreByUsername.mockResolvedValue(null);
-      mockStoreService.createStoreService.mockResolvedValue(created);
+  mockStoreService.getStoreByUserId.mockResolvedValue(null);
+  mockStoreService.getStoreByUsername.mockResolvedValue(null);
+  mockStoreService.createStoreService.mockResolvedValue(created);
 
-      const req = mockReq({
-        body: { name: "My Store", username: "mystore" },
-      });
-
-      const res = mockRes();
-
-      await createStoreController(req, res);
-
-      
-
-      expect(mockStoreService.createStoreService).toHaveBeenCalledWith(
-        userId,
-        expect.objectContaining({
-          username: "mystore",
-          name: "My Store",
-        })
-      );
-
-      expect(res.status).not.toHaveBeenCalledWith(401);
-      expect(res.status).not.toHaveBeenCalledWith(400);
-
-      // ✅ FIXED (object, not array)
-      expect(res.json).toHaveBeenCalledWith(created);
-    });
-
-
-    it("returns 401 when not authenticated", async () => {
-      mockAuth.api.getSession.mockResolvedValue(null);
-
-      const req = mockReq({
-        body: { name: "My Store", username: "mystore" },
-      });
-
-      const res = mockRes();
-
-      await expect(
-        createStoreController(req, res)
-      ).rejects.toThrow("Unauthorized");
-
-      expect(mockStoreService.createStoreService).not.toHaveBeenCalled();
-    });
+  const req = mockReq({
+    body: { name: "My Store", username: "mystore" },
   });
 
-  describe("One-store-per-user rule", () => {
-    it("returns 400 when user already has a store", async () => {
-      const userId = "user-1";
+  //  IMPORTANT FIX
+  (req as any).user = { id: userId };
 
-      mockAuth.api.getSession.mockResolvedValue({ user: { id: userId } });
+  const res = mockRes();
 
-      mockStoreService.createStoreService.mockRejectedValue(
-        new Error("Store already exists")
-      );
+  await createStoreController(req as any, res);
 
-      const req = mockReq({
-        body: { name: "New Store", username: "newstore" },
-      });
+  expect(mockStoreService.createStoreService).toHaveBeenCalledWith(
+    userId,
+    expect.objectContaining({
+      username: "mystore",
+      name: "My Store",
+    })
+  );
 
-      const res = mockRes();
-
-      await expect(
-        createStoreController(req, res)
-      ).rejects.toThrow("Store already exists");
-
-      expect(mockStoreService.createStoreService).toHaveBeenCalled();
-    });
+  //  fix response shape (same issue as before)
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    error: null,
+    data: created,
   });
+});
+
+
+
+
+  });
+
+ describe("One-store-per-user rule", () => {
+  it("returns 400 when user already has a store", async () => {
+    const userId = "user-1";
+
+    mockStoreService.createStoreService.mockRejectedValue(
+      new Error("Store already exists")
+    );
+
+    const req = mockReq({
+      body: { name: "New Store", username: "newstore" },
+    });
+
+    //  simulate middleware
+    (req as any).user = { id: userId };
+
+    const res = mockRes();
+
+    await expect(
+      createStoreController(req as any, res)
+    ).rejects.toThrow("Store already exists");
+
+    expect(mockStoreService.createStoreService).toHaveBeenCalledWith(
+      userId,
+      expect.objectContaining({
+        name: "New Store",
+        username: "newstore",
+      })
+    );
+  });
+});
 
   describe("Username permanence", () => {
-    it("returns 400 when update body includes username (username immutable)", async () => {
-      const userId = "user-1";
+   it("returns 400 when update body includes username (username immutable)", async () => {
+  const userId = "user-1";
 
-      mockAuth.api.getSession.mockResolvedValue({ user: { id: userId } });
+  const req = mockReq({
+    body: { username: "newusername" },
+  });
 
-      mockStoreService.updateStoreService.mockRejectedValue(
-        new Error("Username cannot be changed")
-      );
+  //  simulate middleware
+  (req as any).user = { id: userId };
 
-      const req = mockReq({ body: { username: "newusername" } });
-      const res = mockRes();
+  const res = mockRes();
 
-      await expect(
-        updateStoreController(req, res)
-      ).rejects.toThrow("Username cannot be changed");
+  await expect(
+    updateStoreController(req as any, res)
+  ).rejects.toMatchObject({
+    message: "Username cannot be changed",
+    statusCode: 400,
+  });
 
-      // ✅ FIXED (no username expectation)
-      expect(mockStoreService.updateStoreService).toHaveBeenCalledWith(
-        userId,
-        {} // 🔥 because Zod strips username
-      );
-    });
+  //  IMPORTANT: service should NOT be called
+  expect(mockStoreService.updateStoreService).not.toHaveBeenCalled();
+});
   });
 
   describe("Public visibility enforcement", () => {
@@ -202,99 +200,120 @@ describe("Store controller", () => {
   
 
     it("returns 200 with public fields only when store is public and not deleted", async () => {
-      const publicResponse = {
-        username: "publicstore",
-        name: "Public Store",
-        description: "Desc",
-        avatarUrl: null,
-        bannerUrl: null,
-        announcementText: null,
-        announcementEnabled: false,
-        isVacationMode: false,
-      };
+  const publicResponse = {
+    username: "publicstore",
+    name: "Public Store",
+    description: "Desc",
+    avatarUrl: null,
+    bannerUrl: null,
+    announcementText: null,
+    announcementEnabled: false,
+    isVacationMode: false,
+  };
 
-      mockStoreService.getPublicStoreService.mockResolvedValue(publicResponse);
+  mockStoreService.getPublicStoreService.mockResolvedValue(publicResponse);
 
-      const req = mockReq({ params: { username: "publicstore" } });
-      const res = mockRes();
+  const req = mockReq({ params: { username: "publicstore" } });
+  const res = mockRes();
 
-      await getPublicStoreController(
-        req as Request<{ username: string }>,
-        res
-      );
+  await getPublicStoreController(
+    req as Request<{ username: string }>,
+    res
+  );
 
-      // ✅ success case → res.json called
-      expect(res.json).toHaveBeenCalledWith(publicResponse);
+  //  FIXED
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    data: publicResponse,
+    error: null,
+  });
 
-      // optional
-      expect(mockStoreService.getPublicStoreService).toHaveBeenCalledWith(
-        "publicstore"
-      );
-    });
+  expect(mockStoreService.getPublicStoreService).toHaveBeenCalledWith(
+    "publicstore"
+  );
+});
   });
 
   describe("Soft delete", () => {
  
-    it("sets deletedAt and returns 200", async () => {
-      const userId = "user-1";
-
-      mockAuth.api.getSession.mockResolvedValue({ user: { id: userId } });
-
-      mockStoreService.deleteMyStoreService.mockResolvedValue({
-        message: "Store deleted",
-      });
-
-      const req = mockReq();
-      const res = mockRes();
-
-      await deleteMyStoreController(req, res);
-
-      expect(mockStoreService.deleteMyStoreService).toHaveBeenCalledWith(userId);
-
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
-        message: "Store deleted",
-      });
-    });
-  
-
-  it("returns 200 when store already deleted (idempotent)", async () => {
+   it("sets deletedAt and returns 200", async () => {
   const userId = "user-1";
 
-  mockAuth.api.getSession.mockResolvedValue({ user: { id: userId } });
+  mockStoreService.deleteMyStoreService.mockResolvedValue({
+    message: "Store deleted",
+  });
+
+  const req = mockReq();
+
+  //  simulate middleware
+  (req as any).user = { id: userId };
+
+  const res = mockRes();
+
+  await deleteMyStoreController(req as any, res);
+
+  expect(mockStoreService.deleteMyStoreService).toHaveBeenCalledWith(userId);
+
+  //  depends on your controller implementation
+  expect(res.status).toHaveBeenCalledWith(200);
+
+  //  FIX: successResponse wrapper
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    data: { message: "Store deleted" },
+    error: null,
+  });
+});
+  
+
+it("returns 200 when store already deleted (idempotent)", async () => {
+  const userId = "user-1";
 
   mockStoreService.deleteMyStoreService.mockResolvedValue({
     message: "Store already deleted",
   });
 
   const req = mockReq();
+
+  //  simulate middleware
+  (req as any).user = { id: userId };
+
   const res = mockRes();
 
-  await deleteMyStoreController(req, res);
+  await deleteMyStoreController(req as any, res);
 
   expect(mockStoreService.deleteMyStoreService).toHaveBeenCalledWith(userId);
 
   expect(res.status).toHaveBeenCalledWith(200);
+
+  //  FIX: wrapped response
   expect(res.json).toHaveBeenCalledWith({
-    message: "Store already deleted",
+    success: true,
+    data: { message: "Store already deleted" },
+    error: null,
   });
 });
 
-  it("returns 404 when user has no store", async () => {
+ it("returns 404 when user has no store", async () => {
   const userId = "user-1";
 
-  mockAuth.api.getSession.mockResolvedValue({ user: { id: userId } });
-
   mockStoreService.deleteMyStoreService.mockRejectedValue(
-    new Error("Store not found")
+    new ApiError("Store not found", 404)
   );
 
   const req = mockReq();
+
+  //  simulate middleware
+  (req as any).user = { id: userId };
+
   const res = mockRes();
 
   await expect(
-    deleteMyStoreController(req, res)
-  ).rejects.toThrow("Store not found");
+    deleteMyStoreController(req as any, res)
+  ).rejects.toMatchObject({
+    message: "Store not found",
+    statusCode: 404,
+  });
 
   expect(mockStoreService.deleteMyStoreService).toHaveBeenCalledWith(userId);
 });

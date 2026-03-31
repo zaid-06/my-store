@@ -1,85 +1,103 @@
-// import { describe, it, expect, beforeEach } from "vitest";
-// import { db } from "@/config/db"; // or relative path
 
-// describe("Feature Name", () => {
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
-//   beforeEach(async () => {
-//     // optional setup
-//   });
-
-//   it("should do something", async () => {
-//     // test logic
-//   });
-
-// });
-
-
-
-import { describe, it, expect, beforeEach } from "vitest";
-import { db } from "@/config/db";
-
-import { stores } from "@/modules/stores/store.schema";
-import { categories } from "@/modules/products/product.schema";
+import * as storeDb from "@/modules/stores/store.db";
+import * as productDb from "@/modules/products/product.db";
 
 import { createCategory } from "@/modules/products/product.service";
-
 import { ApiError } from "@/shared/api-error";
 
-describe("Category Uniqueness Per Store", () => {
-  let storeId1: string;
-  let storeId2: string;
+vi.mock("@/modules/stores/store.db");
+vi.mock("@/modules/products/product.db");
 
-  beforeEach(async () => {
-    await db.delete(categories);
-    await db.delete(stores);
+describe("Category Uniqueness Per Store (Mocked)", () => {
+  const storeId1 = "store-1";
+  const storeId2 = "store-2";
 
-    const [store1] = await db.insert(stores).values({
-      name: "Store 1",
-      userId: "user-1",
-       username: "testuser1",
-
-    }).returning();
-
-
-    const [store2] = await db.insert(stores).values({
-      name: "Store 2",
-      userId: "user-2",
-       username: "testuser2",
-      
-    }).returning();
-
-    storeId1 = store1.id;
-    storeId2 = store2.id;
-    // console.log("Created stores with IDs:. ........................", storeId1, storeId2);
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  // ✅ Should create category
+  // Should create category
   it("should create category successfully", async () => {
+    const mockStore = { id: storeId1 };
+
+    const createdCategory = {
+      id: "cat-1",
+      storeId: storeId1,
+      name: "Electronics",
+    };
+
+    // Arrange
+    vi.mocked(storeDb.dbGetStoreById).mockResolvedValue(mockStore as any);
+
+    vi.mocked(productDb.findCategoryByStoreAndName).mockResolvedValue(undefined);
+
+    vi.mocked(productDb.insertCategory).mockResolvedValue(
+      createdCategory as any
+    );
+
+    // Act
     const category = await createCategory(storeId1, "Electronics");
 
-    expect(category).toBeDefined();
-    expect(category.name).toBe("Electronics");
+    // Assert
+    expect(category).toEqual(createdCategory);
+
+    expect(productDb.insertCategory).toHaveBeenCalledWith({
+      storeId: storeId1,
+      name: "Electronics",
+    });
   });
 
-  // ❌ Should throw error for duplicate in same store
+  //  duplicate in SAME store
   it("should throw error if duplicate category in same store", async () => {
-    await createCategory(storeId1, "Electronics");
+    const mockStore = { id: storeId1 };
 
+    // Arrange
+    vi.mocked(storeDb.dbGetStoreById).mockResolvedValue(mockStore as any);
+
+    vi.mocked(productDb.findCategoryByStoreAndName).mockResolvedValue({
+      id: "cat-1",
+      storeId: storeId1,
+      name: "Electronics",
+    } as any);
+
+    // Act + Assert
     await expect(
       createCategory(storeId1, "Electronics")
-    ).rejects.toThrow(ApiError);
+    ).rejects.toMatchObject({
+      message: expect.stringContaining("already"),
+    });
+
+    //  ensure insert not called
+    expect(productDb.insertCategory).not.toHaveBeenCalled();
   });
 
-  // ✅ Same name allowed in different store
+  // same category name in DIFFERENT store (allowed)
   it("should allow same category name in different stores", async () => {
-    await createCategory(storeId1, "Electronics");
+    const mockStore = { id: storeId2 };
 
+    const createdCategory = {
+      id: "cat-2",
+      storeId: storeId2,
+      name: "Electronics",
+    };
+
+    // Arrange
+    vi.mocked(storeDb.dbGetStoreById).mockResolvedValue(mockStore as any);
+
+    vi.mocked(productDb.findCategoryByStoreAndName).mockResolvedValue(undefined);
+
+    vi.mocked(productDb.insertCategory).mockResolvedValue(
+      createdCategory as any
+    );
+
+    // Act
     const category = await createCategory(storeId2, "Electronics");
 
-    expect(category).toBeDefined();
-    expect(category.storeId).toBe(storeId2);
+    // Assert
+    expect(category).toEqual(createdCategory);
   });
 });
-
 
 

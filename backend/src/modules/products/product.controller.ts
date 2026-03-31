@@ -5,42 +5,35 @@ import * as productService from "./product.service";
 import { productSchema ,categorySchema, updateProductSchema, mediaSchema} from "./product.schema";
 import { auth } from "../auth/auth.config";
 import { variantSchema } from "./product.schema";
-
+import { successResponse } from "../../shared/response";
+import { ApiError } from "../../shared/api-error";
 // Create Product Controller
 
-export const createProductController = async (req: Request, res: Response) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
 
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+export const createProductController = async (
+  req: Request,
+  res: Response
+) => {
+  const userId = req.user!.id;
 
-  const store = await storeService.getStoreByUserId(session.user.id);
+  const store = await storeService.getStoreByUserId(userId);
+
   if (!store) {
-    return res.status(400).json({
-      error: "You must have a store to create products",
-    });
+    throw new ApiError(
+      "You must have a store to create products",
+      400
+    );
   }
 
-  const parsed = productSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({
-      error: "Validation failed",
-      details: parsed.error.flatten().fieldErrors,
-    });
-  }
+  const parsed = productSchema.parse(req.body); // use parse (not safeParse)
 
   const product = await productService.createProduct({
     storeId: store.id,
-    ...parsed.data,
+    ...parsed,
   });
 
-  return res.status(201).json(product);
+  return res.status(201).json(successResponse(product));
 };
-
-
 
 
 
@@ -50,43 +43,30 @@ export const createCategoryController = async (
   req: Request,
   res: Response
 ) => {
-  // 1 Auth
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+  const userId = req.user!.id;
 
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  // 2 Store check
-  const store = await storeService.getStoreByUserId(session.user.id);
+  const store = await storeService.getStoreByUserId(userId);
   if (!store) {
-    return res.status(400).json({
-      error: "You must have a store to create categories",
-    });
+    throw new ApiError(
+      "You must have a store to create categories",
+      400
+    );
   }
 
-  // 3 Validation
   const parsed = categorySchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({
-      error: "Validation failed",
-      details: parsed.error.flatten().fieldErrors,
-    });
+    throw new ApiError(
+      parsed.error.issues[0].message,
+      400
+    );
   }
 
-  // 4 Business call
   const category = await productService.createCategory(
     store.id,
     parsed.data.name
   );
 
-  return res.status(201).json({
-    success: true,
-    data: category,
-    error: null,
-  });
+  return res.status(201).json(successResponse(category));
 };
 
 
@@ -95,50 +75,33 @@ export const listCategoriesController = async (
   req: Request,
   res: Response
 ) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+  const userId = req.user!.id;
 
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const store = await storeService.getStoreByUserId(session.user.id);
+  const store = await storeService.getStoreByUserId(userId);
 
   if (!store) {
-    return res.status(400).json({
-      error: "You must have a store to view categories",
-    });
+    throw new ApiError("You must have a store to view categories",400);
   }
 
-  const categories = await productService.listCategoriesByStore(store.id);
+  const categories = await productService.listCategoriesByStore(
+    store.id
+  );
 
-  return res.json({
-    success: true,
-    data: categories,
-    error: null,
-  });
+  return res.json(successResponse(categories)); //  200 by default
 };
 
 
 
 export const getOwnProductsController = async (req: Request, res: Response) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+   const userId = req.user!.id;
 
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const store = await storeService.getStoreByUserId(session.user.id);
+  const store = await storeService.getStoreByUserId(userId);
   if (!store) {
-    return res.status(400).json({ error: "Store not found" });
+    throw new ApiError("Store not found", 400);
   }
-
   const products = await productService.getProductsByStore(store.id);
 
-  return res.json(products);
+  return res.status(200).json(successResponse(products));
 };
 
 
@@ -147,17 +110,11 @@ export const getSingleProductController = async (
   req: Request,
   res: Response
 ) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+  const userId = req.user!.id;
 
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const store = await storeService.getStoreByUserId(session.user.id);
+  const store = await storeService.getStoreByUserId(userId);
   if (!store) {
-    return res.status(400).json({ error: "Store not found" });
+    throw new ApiError("Store not found", 400);
   }
 
   const productId = req.params.id as string;
@@ -168,10 +125,10 @@ export const getSingleProductController = async (
   });
 
   if (!product) {
-    return res.status(404).json({ error: "Product not found" });
+    throw new ApiError("Product not found", 404);
   }
 
-  return res.json(product);
+  return res.json(successResponse(product));
 };
 
 // updateProductController
@@ -179,15 +136,10 @@ export const updateProductController = async (
   req: Request,
   res: Response
 ) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+  const userId = req.user!.id;
 
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
 
-  const store = await storeService.getStoreByUserId(session.user.id);
+  const store = await storeService.getStoreByUserId(userId);
   if (!store) {
     return res.status(400).json({ error: "Store not found" });
   }
@@ -202,7 +154,6 @@ export const updateProductController = async (
     });
   }
 
-  console.log('%%%%%%%%%%%%%%%%%%%%%%%%%')
   try {
     const product = await productService.updateProductByIdForOwner({
       productId: productId,
@@ -214,7 +165,8 @@ export const updateProductController = async (
       return res.status(404).json({ error: "Product not found" });
     }
 
-    return res.json(product);
+    return res.status(200).json(successResponse(product));
+    
   } catch (err: any) {
     return res.status(400).json({
       error: err.message ?? "Update failed",
@@ -222,116 +174,60 @@ export const updateProductController = async (
   }
 
 };
-// Delete Product  Controller
-// export const deleteProductController = async (
-//   req: Request,
-//   res: Response
-// ) => {
-//   const session = await auth.api.getSession({
-//     headers: fromNodeHeaders(req.headers),
-//   });
 
-//   if (!session?.user?.id) {
-//     return res.status(401).json({ error: "Unauthorized" });
-//   }
-
-//   const store = await storeService.getStoreByUserId(session.user.id);
-//   if (!store) {
-//     return res.status(400).json({ error: "Store not found" });
-//   }
-
-//   const productId = req.params.id as string;
-
-//   const deleted = await productService.softDeleteProduct({
-//     productId,
-//     storeId: store.id,
-//   });
-
-//   if (!deleted) {
-//     return res.status(404).json({ error: "Product not found" });
-//   }
-
-//   return res.json({
-//     success: true,
-//     message: "Product deleted successfully",
-//   });
-// };
 
 export const deleteProductController = async (
   req: Request,
   res: Response
 ) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
-
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const store = await storeService.getStoreByUserId(session.user.id);
-
+  const userId = req.user!.id;
+  const store = await storeService.getStoreByUserId(userId);
   if (!store) {
-    return res.status(400).json({ error: "Store not found" });
+    throw new ApiError("Store not found", 400);
   }
-
   const productId = req.params.id as string;
-
   await productService.softDeleteProduct({
     productId,
     storeId: store.id,
   });
 
-  return res.json({
-    success: true,
-    message: "Product deleted successfully",
-  });
+  return res.json(
+    successResponse({
+      message: "Product deleted successfully",
+    })
+  );
 };
 
 
 // Add Variant Controller
-export const addVariantController = async (req: Request, res: Response) => {
-  // 1. session check
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+export const addVariantController = async (
+  req: Request,
+  res: Response
+) => {
+  const userId = req.user!.id;
 
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  // 2. get store
-  const store = await storeService.getStoreByUserId(session.user.id);
+  const store = await storeService.getStoreByUserId(userId);
   if (!store) {
-    return res.status(400).json({ error: "Store not found" });
+    throw new ApiError("Store not found", 400);
   }
 
-  // 3. validate body
   const parsed = variantSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({
-      error: "Validation failed",
-      details: parsed.error.flatten().fieldErrors,
-    });
+    throw new ApiError(
+      parsed.error.issues[0].message,
+      400
+    );
   }
 
-  // 4. productId from params
   const productId = req.params.id as string;
 
-  // 5. ownership + create variant
   const variant = await productService.addVariantToProduct({
     productId,
     storeId: store.id,
     ...parsed.data,
   });
 
-  if (!variant) {
-    return res.status(404).json({ error: "Product not found or not owned" });
-  }
-
-  return res.status(201).json(variant);
-
-
+  return res.status(201).json(successResponse(variant));
 };
 
 // Update Variant Controller
@@ -340,29 +236,22 @@ export const updateVariantController = async (
   req: Request,
   res: Response
 ) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+  const userId = req.user!.id;
 
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const store = await storeService.getStoreByUserId(session.user.id);
+  const store = await storeService.getStoreByUserId(userId);
   if (!store) {
-    return res.status(400).json({ error: "Store not found" });
+    throw new ApiError("Store not found", 400);
   }
 
   const productId = req.params.id as string;
   const variantId = req.params.variantId as string;
 
-  //  validate body
   const parsed = variantSchema.partial().safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({
-      error: "Validation failed",
-      details: parsed.error.flatten().fieldErrors,
-    });
+    throw new ApiError(
+      parsed.error.issues[0].message,
+      400
+    );
   }
 
   const updatedVariant = await productService.updateVariant({
@@ -372,11 +261,7 @@ export const updateVariantController = async (
     ...parsed.data,
   });
 
-  if (!updatedVariant) {
-    return res.status(404).json({ error: "Variant not found" });
-  }
-
-  return res.json(updatedVariant);
+  return res.json(successResponse(updatedVariant)); //  200
 };
 
 // Delete Variant Controller
@@ -385,17 +270,12 @@ export const deleteVariantController = async (
   req: Request,
   res: Response
 ) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+  const userId = req.user!.id;
 
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  const store = await storeService.getStoreByUserId(userId);
 
-  const store = await storeService.getStoreByUserId(session.user.id);
   if (!store) {
-    return res.status(400).json({ error: "Store not found" });
+    throw new ApiError("Store not found", 400);
   }
 
   const productId = req.params.id as string;
@@ -407,101 +287,63 @@ export const deleteVariantController = async (
     storeId: store.id,
   });
 
-  if (result === "NOT_FOUND") {
-    return res.status(404).json({ error: "Variant not found" });
-  }
-
-  if (result === "LAST_VARIANT_PUBLISHED") {
-    return res.status(400).json({
-      error: "Cannot delete last variant of a published product",
-    });
-  }
-  return res.status(200).json({
-  message: "DELET",
-});
+  return res.json(successResponse(result));
 };
-
 // Add Media Controller
-export const addMediaController = async (req: Request, res: Response) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
+export const addMediaController = async (
+  req: Request,
+  res: Response
+) => {
+  const userId = req.user!.id;
 
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const store = await storeService.getStoreByUserId(session.user.id);
+  const store = await storeService.getStoreByUserId(userId);
   if (!store) {
-    return res.status(400).json({ error: "Store not found" });
+    throw new ApiError("Store not found", 400);
   }
 
   const parsed = mediaSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({
-      error: "Validation failed",
-      details: parsed.error.flatten().fieldErrors,
-    });
+    throw new ApiError(
+      parsed.error.issues[0].message,
+      400
+    );
   }
 
   const productId = req.params.id as string;
 
-   try {
-    const media = await productService.addMediaToProduct({
-      productId ,
-      storeId: store.id,
-      ...parsed.data,
-    });
+  const media = await productService.addMediaToProduct({
+    productId,
+    storeId: store.id,
+    ...parsed.data,
+  });
 
-    if (!media) {
-      return res.status(400).json({
-        error: "Cannot add media (limit reached or product not found)",
-      });
-    }
-
-    return res.status(201).json(media);
-
-  } catch (err: any) {
-    return res.status(400).json({
-      error: err.message ?? "Failed to add media",
-    });
-  }
+  return res.status(201).json(successResponse(media));
 };
 
 
+export const removeMediaController = async (
+  req: Request,
+  res: Response
+) => {
+  const userId = req.user!.id;
 
-export const removeMediaController = async (req: Request, res: Response) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
-
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const store = await storeService.getStoreByUserId(session.user.id);
+  const store = await storeService.getStoreByUserId(userId);
   if (!store) {
-    return res.status(400).json({ error: "Store not found" });
+    throw new ApiError("Store not found", 400);
   }
 
   const productId = req.params.id as string;
   const mediaId = req.params.mediaId as string;
 
-  const deleted = await productService.removeMediaFromProduct({
+  await productService.removeMediaFromProduct({
     productId,
     mediaId,
     storeId: store.id,
   });
 
-  if (!deleted) {
-    return res.status(404).json({
-      error: "Media not found or product not owned",
-    });
-  }
-
-  return res.status(200).json({
-    message: "MEDIA_DELETED",
-  });
+  return res.json(
+    successResponse({ message: "MEDIA_DELETED" })
+  );
 };
 
 // Remove Media Contlist Published Products By Store Controller
@@ -509,22 +351,18 @@ export const listPublishedProductsByStoreController = async (
   req: Request<{ username: string }>,
   res: Response
 ) => {
-  
   const { username } = req.params;
 
-  console.log("username..........................,,,,,,,,,,,,,,,,", username);
-  // 1. Find store by username
   const store = await storeService.getStoreByUsername(username);
+
   if (!store) {
-    return res.status(404).json({ error: "Store not found" });
+    throw new ApiError("Store not found", 404);
   }
 
-  // 2. Fetch published products
-  const products = await productService.getPublishedProductsByStoreId(
-    store.id
-  );
+  const products =
+    await productService.getPublishedProductsByStoreId(store.id);
 
-  return res.json(products);
+  return res.json(successResponse(products));
 };
 
 // product.controller.ts
@@ -534,24 +372,19 @@ export const getSinglePublishedProductController = async (
 ) => {
   const { username, productId } = req.params;
 
-  // Store lookup (controller responsibility)
   const store = await storeService.getStoreByUsername(username as string);
 
-  if (!store || !store.isPublic) {
-    return res.status(404).json({ error: "Store not found" });
+  // Task 9: treat suspended/private as NOT FOUND
+  if (!store || !store.isPublic || store.isSuspended) {
+    throw new ApiError("Store not found", 404);
   }
 
-  //  Call service with IDs only
   const product =
     await productService.getSinglePublishedProductByStoreAndId({
       storeId: store.id,
       productId: productId as string,
     });
 
-  if (!product) {
-    return res.status(404).json({ error: "Product not found" });
-  }
-
-  return res.json(product);
+  return res.json(successResponse(product));
 };
 

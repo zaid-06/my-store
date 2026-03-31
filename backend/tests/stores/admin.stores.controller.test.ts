@@ -5,7 +5,7 @@ import {
   getStoreByIdController,
   restoreStoreController,
 } from "../../src/modules/admin/admin.stores.controller";
-
+import { ApiError } from "@/shared/api-error";
 const mockStoreService = vi.hoisted(() => ({
   listStores: vi.fn(),
   getStoreById: vi.fn(),
@@ -31,106 +31,131 @@ describe("Admin stores controller", () => {
   });
 
   describe("List stores", () => {
-    it("returns all stores (public, private, soft-deleted)", async () => {
-      const stores = [
-        { id: "1", username: "a", isPublic: true, deletedAt: null },
-        { id: "2", username: "b", isPublic: false, deletedAt: null },
-        { id: "3", username: "c", isPublic: true, deletedAt: new Date() },
-      ];
-      mockStoreService.listStores.mockResolvedValue(stores);
+ it("returns all stores (public, private, soft-deleted)", async () => {
+  const stores = [
+    { id: "1", username: "a", isPublic: true, deletedAt: null },
+    { id: "2", username: "b", isPublic: false, deletedAt: null },
+    { id: "3", username: "c", isPublic: true, deletedAt: new Date() },
+  ];
 
-      const req = mockReq();
-      const res = mockRes();
+  mockStoreService.listStores.mockResolvedValue(stores);
 
-      await listStoresController(req, res);
+  const req = mockReq();
+  const res = mockRes();
 
-      expect(mockStoreService.listStores).toHaveBeenCalled();
-      expect(res.json).toHaveBeenCalledWith(stores);
-    });
+  await listStoresController(req, res);
+
+  expect(mockStoreService.listStores).toHaveBeenCalled();
+
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    error: null,
+    data: stores,
+  });
+});
   });
 
   describe("Get store by ID", () => {
     it("returns 404 when store does not exist", async () => {
-      mockStoreService.getStoreById.mockResolvedValue(null);
+  mockStoreService.getStoreById.mockResolvedValue(null);
 
-      const req = mockReq({ params: { id: "missing-id" } });
-      const res = mockRes();
+  const req = mockReq({ params: { id: "missing-id" } });
+  const res = mockRes();
 
-      await getStoreByIdController(req as Request<{ id: string }>, res);
+  await expect(
+    getStoreByIdController(req as any, res)
+  ).rejects.toMatchObject({
+    message: "Store not found",
+    statusCode: 404,
+  });
+});
+it("returns store when found", async () => {
+  const store = { id: "store-1", username: "adminstore", name: "Store" };
 
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ error: "Store not found" })
-      );
-    });
+  mockStoreService.getStoreById.mockResolvedValue(store);
 
-    it("returns store when found", async () => {
-      const store = { id: "store-1", username: "adminstore", name: "Store" };
-      mockStoreService.getStoreById.mockResolvedValue(store);
+  const req = mockReq({ params: { id: "store-1" } });
+  const res = mockRes();
 
-      const req = mockReq({ params: { id: "store-1" } });
-      const res = mockRes();
+  await getStoreByIdController(req as Request<{ id: string }>, res);
 
-      await getStoreByIdController(req as Request<{ id: string }>, res);
-
-      expect(res.json).toHaveBeenCalledWith(store);
-    });
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    error: null,
+    data: store,
+  });
+});
   });
 
   describe("Restore store", () => {
-    it("restores store when deletedAt is set and does not change isPublic/isVacationMode", async () => {
-      const deletedStore = {
-        id: "store-1",
-        username: "deleted",
-        deletedAt: new Date(),
-        isPublic: false,
-        isVacationMode: true,
-      };
-      const restored = {
-        ...deletedStore,
-        deletedAt: null,
-        updatedAt: new Date(),
-      };
-      mockStoreService.getStoreById.mockResolvedValue(deletedStore);
-      mockStoreService.restoreStore.mockResolvedValue(restored);
+   it("restores store when deletedAt is set and does not change isPublic/isVacationMode", async () => {
+  const deletedStore = {
+    id: "store-1",
+    username: "deleted",
+    deletedAt: new Date(),
+    isPublic: false,
+    isVacationMode: true,
+  };
 
-      const req = mockReq({ params: { id: "store-1" } });
-      const res = mockRes();
+  const restored = {
+    ...deletedStore,
+    deletedAt: null,
+    updatedAt: new Date(),
+  };
 
-      await restoreStoreController(req as Request<{ id: string }>, res);
+  mockStoreService.getStoreById.mockResolvedValue(deletedStore);
+  mockStoreService.restoreStore.mockResolvedValue(restored);
 
-      expect(mockStoreService.restoreStore).toHaveBeenCalledWith("store-1");
-      expect(res.json).toHaveBeenCalledWith(restored);
-    });
+  const req = mockReq({ params: { id: "store-1" } });
+  const res = mockRes();
 
-    it("returns 400 when store is not deleted", async () => {
-      const store = { id: "store-1", username: "live", deletedAt: null };
-      mockStoreService.getStoreById.mockResolvedValue(store);
+  await restoreStoreController(req as any, res);
 
-      const req = mockReq({ params: { id: "store-1" } });
-      const res = mockRes();
+  expect(mockStoreService.restoreStore).toHaveBeenCalledWith("store-1");
 
-      await restoreStoreController(req as Request<{ id: string }>, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.stringContaining("not deleted"),
-        })
-      );
-      expect(mockStoreService.restoreStore).not.toHaveBeenCalled();
-    });
-
-    it("returns 404 when store does not exist", async () => {
-      mockStoreService.getStoreById.mockResolvedValue(null);
-
-      const req = mockReq({ params: { id: "missing" } });
-      const res = mockRes();
-
-      await restoreStoreController(req as Request<{ id: string }>, res);
-
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(mockStoreService.restoreStore).not.toHaveBeenCalled();
-    });
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    error: null,
+    data: restored,
   });
 });
+  it("returns 400 when store is not deleted", async () => {
+  const store = { id: "store-1", username: "live", deletedAt: null };
+
+  mockStoreService.restoreStore.mockRejectedValue(
+    new ApiError("Store is not deleted; only deleted stores can be restored", 400)
+  );
+
+  const req = mockReq({ params: { id: "store-1" } });
+  const res = mockRes();
+
+  await expect(
+    restoreStoreController(req as any, res)
+  ).rejects.toMatchObject({
+    message: expect.stringContaining("not deleted"),
+    statusCode: 400,
+  });
+   });
+
+  expect(mockStoreService.restoreStore).not.toHaveBeenCalled();
+  });
+
+    it("returns 404 when store does not exist", async () => {
+  mockStoreService.restoreStore.mockRejectedValue(
+    new ApiError("Store not found", 404)
+  );
+
+  const req = mockReq({ params: { id: "missing" } });
+  const res = mockRes();
+
+  await expect(
+    restoreStoreController(req as any, res)
+  ).rejects.toMatchObject({
+    message: "Store not found",
+    statusCode: 404,
+  });
+
+  expect(mockStoreService.restoreStore).toHaveBeenCalledWith("missing");
+});
+});
+

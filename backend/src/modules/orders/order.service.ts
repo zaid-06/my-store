@@ -298,32 +298,27 @@ export const markOrderRefund = async ({
   refundAmount,
 }: MarkRefundInput) => {
 
+  if (refundAmount <= 0) {
+    throw new ApiError("Refund amount must be greater than 0", 400);
+  }
   let order;
 
   if (role === "CREATOR") {
-
     const store = await dbGetStoreByUserId(userId);
-
     if (!store) {
       throw new ApiError("Store not found", 404);
     }
-
     order = await orderDb.findOrderByIdAndStore(
       orderId,
       store.id
     );
-
   } else {
-
     // ADMIN
     order = await orderDb.findOrderById(orderId);
-
   }
-
   if (!order) {
     throw new ApiError("Order not found", 404);
   }
-
   /*
   Prevent over refund
   */
@@ -334,11 +329,7 @@ export const markOrderRefund = async ({
       400
     );
   }
-
-  /*
-  Update refund in order
-  */
-
+  // Update refund in order
   const updated = await orderDb.updateOrderRefund(
     orderId,
     refundAmount
@@ -355,10 +346,7 @@ export const markOrderRefund = async ({
       },
     });
   }
-
-  /*
-  Notify payout system
-  */
+  // Notify payout system
 
   await adjustPayoutAfterRefund(orderId, refundAmount);
 

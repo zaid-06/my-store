@@ -102,26 +102,8 @@ docker exec -it mystore-backend sh
 
 Run all tests (one by one)
 ```
-npx vitest run --pool=forks --max-workers=1
+npx vitest run 
 ```
-
-Run tests for a specific folder
-```
-npx vitest run tests/folder_name --pool=forks --max-workers=1
-```
-
-## Database Migrations (Backend)
-
-Inside backend container:
-```
-pnpm run db:generate
-pnpm run db:migrate
-```
-
-## Notes
-- Tests are run sequentially to avoid DB conflicts
-- Always run migrations before starting backend if schema changes
----
 
 ## Common Commands
 

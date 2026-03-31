@@ -2,8 +2,32 @@ import { Request, Response } from "express";
 import { 
   listAdminOrders, 
   adminOverrideOrderStatus, 
-  adminSoftDeleteOrder 
+  adminSoftDeleteOrder
+
 } from "./admin.order.service";
+
+import { successResponse } from "../../shared/response";
+import { ApiError } from "../../shared/api-error";
+import { markOrderRefund } from "../orders/order.service";
+
+export const adminMarkOrderRefundController = async (
+  req: Request,
+  res: Response
+) => {
+  const adminId = req.user!.id;
+
+  const { id } = req.params as { id: string };
+  const { refundAmount } = req.body;
+
+  const updatedOrder = await markOrderRefund({
+    userId: adminId,
+    role: "ADMIN", //  force admin role
+    orderId: id,
+    refundAmount: Number(refundAmount),
+  });
+
+  return res.json(successResponse(updatedOrder));
+};
 
 
 export const listAdminOrdersController = async (
@@ -17,12 +41,8 @@ export const listAdminOrdersController = async (
     startDate: startDate as string,
     endDate: endDate as string,
   });
+  return res.json(successResponse(orders));
 
-  res.json({
-    success: true,
-    data: orders,
-    error: null,
-  });
 };
 
 
@@ -30,26 +50,18 @@ export const adminOverrideOrderStatusController = async (
   req: Request,
   res: Response
 ) => {
-  const { id } = req.params;
+  const adminId = req.user!.id;
+  const orderId = req.params.id as string;
   const { status } = req.body;
-
   if (!status) {
-    return res.status(400).json({
-      success: false,
-      error: "Status is required",
-    });
+    throw new ApiError("Status is required", 400);
   }
-
   const updated = await adminOverrideOrderStatus({
-    orderId: id as string,
+    orderId,
     status,
+    adminId,
   });
-
-  res.json({
-    success: true,
-    data: updated,
-    error: null,
-  });
+  return res.json(successResponse(updated));
 };
 
 
@@ -60,12 +72,7 @@ export const adminSoftDeleteOrderController = async (
   res: Response
 ) => {
   const { id } = req.params;
-
   const deleted = await adminSoftDeleteOrder(id as string);
+  return res.json(successResponse(deleted));
 
-  res.json({
-    success: true,
-    data: deleted,
-    error: null,
-  });
 };

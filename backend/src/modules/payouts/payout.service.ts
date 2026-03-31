@@ -17,53 +17,40 @@ export const createPayoutForOrderService = async (orderId: string) => {
   if (!order) {
     throw new ApiError("Order not found", 404);
   }
-
   const store = await storeDb.dbGetStoreById(order.storeId);
-
   if (!store) {
     throw new ApiError("Store not found", 404);
   }
-
   // if (store.isSuspended) {
   //   throw new ApiError("Store is suspended. Payouts are disabled", 403);
   // }
   assertStoreNotSuspended(store);
   // Prevent duplicate payout
   const existingPayout = await payoutDb.findPayoutByOrderId(orderId);
-
   if (existingPayout) {
     return existingPayout;
   }
-
   const commissionPercent = env.PLATFORM_COMMISSION_PERCENT;
-
   const grossAmount = Number(order.totalAmount);
-
   const commissionAmount = Number(
     (grossAmount * commissionPercent) / 100
   );
-
   const netAmount = grossAmount - commissionAmount;
-
   // Hold period
   const holdDays = env.PAYOUT_HOLD_DAYS;
-
   const eligibleAt = new Date();
   eligibleAt.setDate(eligibleAt.getDate() + holdDays ); // 0 is a temp value for testing
 
   const payout = await payoutDb.createPayout({
     storeId: order.storeId,
-    creatorId: order.storeId, // (assumption based on your schema)
+    creatorId: store.userId, // (assumption based on your schema)
     orderId: order.id,
     grossAmount,
     commissionAmount,
     netAmount,
     eligibleAt,
   });
-
-  
    // SCHEDULE PAYOUT ELIGIBILITY JOB
-  
   await jobDb.createJob({
     type: "PAYOUT_ELIGIBILITY",
     payload: {
@@ -87,15 +74,12 @@ export const listCreatorPayoutsService = async ({
   startDate?: string;
   endDate?: string;
 }) => {
-  
-
   // find creator store
   const store = await dbGetStoreByUserId(creatorId);
 
   if (!store) {
     throw new ApiError("Store not found", 404);
   }
-
   const payouts = await payoutDb.listPayoutsByStore({
     storeId: store.id,
     status,
@@ -110,13 +94,10 @@ export const listCreatorPayoutsService = async ({
 export const getPayoutSummaryService = async (creatorId: string) => {
 
   const store = await dbGetStoreByUserId(creatorId);
-
   if (!store) {
     throw new ApiError("Store not found", 404);
   }
-
   const summary = await payoutDb.getPayoutSummaryByStore(store.id);
-
   return summary;
 };
 
@@ -151,32 +132,22 @@ export const updateEligiblePayouts = async () => {
   const lockedPayouts = await payoutDb.getLockedPayouts();
 
   const now = new Date();
-
   for (const payout of lockedPayouts) {
-
     //  TASK 9: skip frozen payouts
     if (payout.isFrozen) {
       continue;
     }
-
-
     if (new Date(payout.eligibleAt) <= now) {
-
       const order = await orderDb.findOrderById(payout.orderId);
-
       if (
         order &&
         order.status === "DELIVERED" &&
          Number(order.refundAmount || 0) < Number(order.totalAmount) // added this
-
       ) {
         await payoutDb.markPayoutEligible(payout.id);
       }
-
     }
-
   }
-
 };
 
 
@@ -184,20 +155,15 @@ export const updateEligiblePayouts = async () => {
 
 
 export const releasePayoutService = async (payoutId: string, adminId: string ) => {
-
   // const payout = await payoutDb.findPayoutById(payoutId);
-
   // if (!payout) {
   //   throw new ApiError("Payout not found", 404);
   // }
-
-  
   const payout = await payoutDb.findPayoutWithCreator(payoutId);
 
   if (!payout) {
     throw new ApiError("Payout not found", 404);
   }
-
   const store = payout.store;
   const creatorEmail = payout.store.user.email;
 
@@ -243,38 +209,28 @@ export const adjustPayoutAfterRefund = async (
 ) => {
 
   const payout = await payoutDb.findPayoutByOrderId(orderId);
-
   if (!payout) {
     return;
   }
   //  TASK 9: skip frozen payouts
   if (payout.isFrozen) return;
-
   // If payout already released → do nothing
   if (payout.status === "RELEASED") {
     return;
   }
-
   const grossAmount = Number(payout.grossAmount);
-
   // FULL REFUND
   if (refundAmount >= grossAmount) {
-
     await payoutDb.cancelPayout(payout.id);
-
     return;
   }
 
   // PARTIAL REFUND
-
    const commissionPercent = env.PLATFORM_COMMISSION_PERCENT;
-
   // ADD THIS HELPER
   const round = (val: number) => Number(val.toFixed(2));
-
   // APPLY ROUNDING HERE
   const newGross = round(grossAmount - refundAmount);
-
   const newCommission = round(
     (newGross * commissionPercent) / 100
   );
@@ -303,17 +259,14 @@ export const cancelPayoutService = async (payoutId: string) => {
   if (!payout) {
     throw new ApiError("Payout not found", 404);
   }
-
    // BLOCK IF FROZEN
   if (payout.isFrozen) {
     throw new ApiError("Payout is frozen and cannot be cancelled", 403);
   }
-
   //  Cannot cancel released payout
   if (payout.status === "RELEASED") {
     throw new ApiError("Released payout cannot be cancelled", 400);
   }
-
   // idempotent behaviour
   if (payout.status === "CANCELLED") {
     return payout;
@@ -340,7 +293,6 @@ export const freezePayoutService = async ({
   if (!payout) {
     throw new ApiError("Payout not found", 404);
   }
-
   if (payout.isFrozen) {
     throw new ApiError("Payout already frozen", 400);
   }

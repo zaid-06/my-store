@@ -3,14 +3,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // mock DB
 vi.mock("../../src/modules/payouts/payout.db", () => ({
   findPayoutById: vi.fn(),
-  markPayoutEligible: vi.fn(), // ✅ use this
+  markPayoutEligible: vi.fn(), //  use this
 }));
 
 vi.mock("../../src/modules/jobs/job.db", () => ({
   markJobProcessing: vi.fn(),
   markJobCompleted: vi.fn(),
   markJobFailed: vi.fn(),
-  markJobRetry: vi.fn(), // ✅ ADD THIS
+  markJobRetry: vi.fn(), //  ADD THIS
 }));
 
 import * as payoutDb from "../../src/modules/payouts/payout.db";

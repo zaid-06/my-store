@@ -9,15 +9,13 @@ import {
   unfreezePayoutService,
  } from "./payout.service";
 
+import { successResponse } from "../../shared/response";
 
-import { fromNodeHeaders } from "better-auth/node";
-import { auth } from "../auth/auth.config";
-export const listCreatorPayoutsController = async (req: Request, res: Response) => {
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(req.headers),
-    });
-    if (!session?.user?.id) {return res.status(401).json({ error: "Unauthorized" });}
-    const creatorId = session?.user.id
+export const listCreatorPayoutsController = async (
+  req: Request,
+  res: Response
+) => {
+  const creatorId = req.user!.id;
 
   const { status, startDate, endDate } = req.query;
 
@@ -28,9 +26,7 @@ export const listCreatorPayoutsController = async (req: Request, res: Response) 
     endDate: endDate as string | undefined,
   });
 
-  res.json({
-    data: payouts,
-  });
+  return res.json(successResponse(payouts));
 };
 
 
@@ -40,15 +36,10 @@ export const getPayoutSummaryController = async (
   res: Response
 ) => {
 
-  const session = await auth.api.getSession({
-      headers: fromNodeHeaders(req.headers),
-  });
-  if (!session?.user?.id) {return res.status(401).json({ error: "Unauthorized" });}
-  const creatorId = session?.user.id
-
+  const creatorId = req.user!.id;
   const summary = await getPayoutSummaryService(creatorId);
 
-  return res.json(summary);
+  return res.json(successResponse(summary));
 };
 
 
@@ -67,49 +58,28 @@ export const listAllPayoutsAdminController = async (
     endDate: endDate as string | undefined,
   });
 
-  res.json({
-    data: payouts,
-  });
+  return res.json(successResponse(payouts));
 };
 
 
-// export const releasePayoutController = async (
-//   req: Request,
-//   res: Response
-// ) => {
 
-//   const payoutId = req.params.id;
-
-//   const payout = await releasePayoutService(payoutId as string);
-
-//   return res.json({
-//     message: "Payout released",
-//     data: payout,
-//   });
-// };
 export const releasePayoutController = async (
   req: Request,
   res: Response
 ) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
-
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
+  const adminId = req.user!.id;
   const payoutId = req.params.id;
-// const adminId = session.user.id;
   const payout = await releasePayoutService(
     payoutId as string,
-    session.user.id //  PASS ADMIN ID
+    adminId
   );
 
-  return res.json({
-    message: "Payout released",
-    data: payout,
-  });
+  return res.json(
+    successResponse({
+      message: "Payout released",
+      payout,
+    })
+  );
 };
 
 
@@ -122,10 +92,8 @@ export const cancelPayoutController = async (
 
   const payout = await cancelPayoutService(payoutId as string);
 
-  res.json({
-    message: "Payout cancelled",
-    data: payout,
-  });
+  
+ return res.json(successResponse(payout));
 };
 
 
@@ -134,38 +102,27 @@ export const freezePayoutController = async (
   req: Request<{ id: string }>,
   res: Response
 ) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
-
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  const adminId = req.user!.id;
 
   const result = await freezePayoutService({
     payoutId: req.params.id,
-    adminId: session.user.id,
+    adminId,
   });
 
-  return res.json(result);
+ return res.json(successResponse(result));
 };
 
 export const unfreezePayoutController = async (
   req: Request<{ id: string }>,
   res: Response
 ) => {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
-
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+ 
+  const adminId = req.user!.id;
 
   const result = await unfreezePayoutService({
     payoutId: req.params.id,
-    adminId: session.user.id,
+    adminId: adminId,
   });
 
-  return res.json(result);
+  return res.json(successResponse(result));
 };

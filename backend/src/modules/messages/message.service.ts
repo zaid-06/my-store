@@ -13,11 +13,12 @@ import {
   adminGetMessagesByConversationId,
 } from "./message.db";
 import { findOrderById } from "../orders/order.db";
-import { dbGetStoreByUserId } from "../stores/store.db";
+import { dbGetStoreByUserId ,dbGetStoreById } from "../stores/store.db";
 import { ApiError } from "../../shared/api-error";
 import * as jobDb from "../jobs/job.db";
 import * as adminAuditLogDb from "../admin/admin-audit.db"
 import { assertStoreNotSuspended} from "../../guards/store.guard";
+import { env } from "../../config/env";
 
 export const sendMessageForOrderService = async ({
   orderId,
@@ -30,37 +31,37 @@ export const sendMessageForOrderService = async ({
   phone: string;
   content: string;
 }) => {
-  // 1. find order
   const order = await findOrderById(orderId);
 
   if (!order) {
     throw new ApiError("Order not found", 404);
   }
 
-  // cancelled order check
+  const store = await dbGetStoreById(order.storeId);
+
+  if (!store) {
+    throw new ApiError("Store not found", 404);
+  }
+
   if (order.status === "CANCELLED") {
     throw new ApiError("Cannot message cancelled order", 400);
   }
 
-  // verify buyer
   if (order.buyerEmail !== email || order.buyerPhone !== phone) {
     throw new ApiError("Buyer verification failed", 403);
   }
 
-  // find conversation
   let conversation = await findConversationByOrderId(orderId);
 
-  // create conversation if missing (lazy creation)
   if (!conversation) {
     conversation = await createConversation({
       orderId,
       storeId: order.storeId,
-      creatorId: order.storeId,
+      creatorId: store.userId, // correct fix from earlier issue
       buyerEmail: order.buyerEmail,
     });
   }
 
-  // create message
   const message = await createMessage({
     conversationId: conversation.id,
     senderRole: "BUYER",
@@ -68,10 +69,7 @@ export const sendMessageForOrderService = async ({
     content,
   });
 
-  return {
-    message: "Message sent",
-    data: message,
-  };
+  return message; // 
 };
 
 
@@ -84,29 +82,23 @@ export const getMessagesForOrderService = async ({
   email: string;
   phone: string;
 }) => {
-  // 1. find order
   const order = await findOrderById(orderId);
 
   if (!order) {
     throw new ApiError("Order not found", 404);
   }
 
-  // 2. verify buyer
   if (order.buyerEmail !== email || order.buyerPhone !== phone) {
     throw new ApiError("Buyer verification failed", 403);
   }
 
-  // 3. find conversation
   const conversation = await findConversationByOrderId(orderId);
 
   if (!conversation) {
-    return []; //  correct: no error, just no messages
+    return []; //  correct behavior
   }
 
-  // 4. get messages
-  const messages = await getMessagesByConversationId(conversation.id);
-
-  return messages;
+  return await getMessagesByConversationId(conversation.id);
 };
 // buyer
 export const escalateDisputeService = async ({
@@ -118,38 +110,33 @@ export const escalateDisputeService = async ({
   email: string;
   phone: string;
 }) => {
-  // 1. find conversation
   const conversation = await findConversationById(conversationId);
 
   if (!conversation) {
     throw new ApiError("Conversation not found", 404);
   }
 
-  // 2. get order
   const order = await findOrderById(conversation.orderId);
 
   if (!order) {
     throw new ApiError("Order not found", 404);
   }
 
-  // 3. verify buyer
   if (order.buyerEmail !== email || order.buyerPhone !== phone) {
     throw new ApiError("Buyer verification failed", 403);
   }
 
-  // 4. already disputed check
   if (conversation.isDisputed) {
     throw new ApiError("Conversation already disputed", 400);
   }
 
-  // 5. set dispute
   const updated = await setConversationDispute(conversationId, true);
 
-  // 6. notify admin
+  //  use env instead of hardcoded email
   await jobDb.createJob({
     type: "EMAIL",
     payload: {
-      to: "admin@platform.com", // ideally env.ADMIN_EMAIL
+      to: env.ADMIN_EMAIL,
       template: "DISPUTE_ESCALATED",
       data: {
         orderId: order.id,
@@ -157,10 +144,7 @@ export const escalateDisputeService = async ({
     },
   });
 
-  return {
-    message: "Dispute escalated",
-    data: updated,
-  };
+  return updated; //  ONLY DATA
 };
 
 
@@ -178,11 +162,10 @@ export const resolveDisputeService = async (conversationId: string) => {
 
   const updated = await setConversationDispute(conversationId, false);
 
-  return {
-    message: "Dispute resolved",
-    data: updated,
-  };
+  return updated; // ONLY DATA
 };
+
+
 
 
 export const listCreatorConversationsService = async ({
@@ -364,7 +347,7 @@ export const softDeleteMessageService = async ({
 
   const updated = await softDeleteMessageById(messageId);
 
-  // 🔥 TASK 9: LOG ONLY IF ADMIN
+  //  TASK 9: LOG ONLY IF ADMIN
   if (isAdmin && adminId) {
     await adminAuditLogDb.createLog({
       adminId,

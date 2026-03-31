@@ -1,149 +1,129 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { db } from "@/config/db";
 
-import { products } from "@/modules/products/product.schema";
-import { stores } from "@/modules/stores/store.schema";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import * as productDb from "@/modules/products/product.db";
+import * as orderDb from "@/modules/orders/order.db";
 
-import {
-  softDeleteProduct,
-  getSinglePublishedProductByStoreAndId,
-} from "@/modules/products/product.service";
+import { getSinglePublishedProductByStoreAndId, softDeleteProduct } from "@/modules/products/product.service";
 
-let storeId: string;
-let otherStoreId: string;
+vi.mock("@/modules/products/product.db");
+vi.mock("@/modules/orders/order.db");
 
-describe("Soft Delete Behavior", () => {
-  beforeEach(async () => {
-    // Clean tables
-    await db.delete(products);
-    await db.delete(stores);
+describe("Soft Delete Behavior (Mocked)", () => {
+  const storeId = "store-1";
+  const productId = "product-1";
 
-    // Create Store 1
-    const [store1] = await db
-      .insert(stores)
-      .values({
-        name: "Store 1",
-        userId: "user-1",
-        username: "testuser1",
-      })
-      .returning();
-
-    // Create Store 2
-    const [store2] = await db
-      .insert(stores)
-      .values({
-        name: "Store 2",
-        userId: "user-2",
-        username: "testuser2",
-      })
-      .returning();
-
-    storeId = store1.id;
-    otherStoreId = store2.id;
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  // ✅ Should soft delete product
+  //  Should soft delete product
   it("should soft delete product", async () => {
-    const [product] = await db
-      .insert(products)
-      .values({
-        storeId,
-        title: "Delete Me",
-        status: "draft",
-        deletedAt: null,
-      })
-      .returning();
+    const mockProduct = {
+      id: productId,
+      storeId,
+      deletedAt: null,
+    };
 
+    const deletedProduct = {
+      ...mockProduct,
+      deletedAt: new Date(),
+    };
+
+    // Arrange
+    vi.mocked(productDb.findProductByIdAndStoreId).mockResolvedValue(
+      mockProduct as any
+    );
+
+    vi.mocked(orderDb.findActiveOrdersByProductId).mockResolvedValue([]);
+
+    vi.mocked(productDb.softDeleteProductDB).mockResolvedValue(
+      deletedProduct as any
+    );
+
+    // Act
     const result = await softDeleteProduct({
-      productId: product.id,
+      productId,
       storeId,
     });
 
-    expect(result).not.toBeNull();
-    expect(result?.deletedAt).not.toBeNull();
+    // Assert
+    expect(result).toEqual(deletedProduct);
+
+    expect(productDb.findProductByIdAndStoreId).toHaveBeenCalledWith({
+      productId,
+      storeId,
+    });
+
+    expect(orderDb.findActiveOrdersByProductId).toHaveBeenCalledWith(
+      productId
+    );
+
+    expect(productDb.softDeleteProductDB).toHaveBeenCalledWith({
+      productId,
+      storeId,
+    });
   });
 
-  // ❌ Should not delete product of another store
-  // it("should NOT delete product of another store", async () => {
-  //   const [product] = await db
-  //     .insert(products)
-  //     .values({
-  //       storeId: otherStoreId,
-  //       title: "Other Store Product",
-  //       status: "draft",
-  //       deletedAt: null,
-  //     })
-  //     .returning();
+  it("should NOT delete already deleted product", async () => {
+  const mockProduct = {
+    id: productId,
+    storeId,
+    deletedAt: new Date(), // already deleted 
+  };
 
-  //   const result = await softDeleteProduct({
-  //     productId: product.id,
-  //     storeId, // wrong store
-  //   });
+  // Arrange
+  vi.mocked(productDb.findProductByIdAndStoreId).mockResolvedValue(
+    mockProduct as any
+  );
 
-  //   expect(result).toBeNull();
-  // });
-
-  it("should NOT delete product of another store", async () => {
-  const [product] = await db
-    .insert(products)
-    .values({
-      storeId: otherStoreId,
-      title: "Other Store Product",
-      status: "draft",
-      deletedAt: null,
-    })
-    .returning();
-
+  // Act + Assert
   await expect(
     softDeleteProduct({
-      productId: product.id,
-      storeId, // wrong store
-    })
-  ).rejects.toThrow("Product not found");
-});
-
- // ❌ Should not delete already deleted product
-it("should NOT delete already deleted product", async () => {
-  const [product] = await db
-    .insert(products)
-    .values({
-      storeId,
-      title: "Already Deleted",
-      status: "draft",
-      deletedAt: new Date(),
-    })
-    .returning();
-
-  await expect(
-    softDeleteProduct({
-      productId: product.id,
+      productId,
       storeId,
     })
   ).rejects.toThrow("Product already deleted");
+
+  // ensure no further operations happen
+  expect(orderDb.findActiveOrdersByProductId).not.toHaveBeenCalled();
+  expect(productDb.softDeleteProductDB).not.toHaveBeenCalled();
 });
-  // ❌ Deleted product should not be visible publicly
-  it("should NOT return deleted product in public API", async () => {
-    const [product] = await db
-      .insert(products)
-      .values({
-        storeId,
-        title: "Published Product",
-        status: "published",
-        deletedAt: null,
-      })
-      .returning();
 
-    // Soft delete it
-    await softDeleteProduct({
-      productId: product.id,
+it("should NOT delete product of another store", async () => {
+  // Arrange → product not found for this store
+  vi.mocked(productDb.findProductByIdAndStoreId).mockResolvedValue(null as any);
+
+  // Act + Assert
+  await expect(
+    softDeleteProduct({
+      productId,
+      storeId, // wrong store
+    })
+  ).rejects.toThrow("Product not found");
+
+  //  ensure nothing else runs
+  expect(orderDb.findActiveOrdersByProductId).not.toHaveBeenCalled();
+  expect(productDb.softDeleteProductDB).not.toHaveBeenCalled();
+});
+
+it("should NOT return deleted product in public API", async () => {
+  // Arrange → DB will NOT return deleted product
+  vi.mocked(productDb.dbGetSinglePublishedProduct).mockResolvedValue(undefined);
+
+  // Act + Assert
+  await expect(
+    getSinglePublishedProductByStoreAndId({
       storeId,
-    });
-
-    const result = await getSinglePublishedProductByStoreAndId({
-      storeId,
-      productId: product.id,
-    });
-
-    expect(result).toBeNull();
+      productId,
+    })
+  ).rejects.toMatchObject({
+    message: "Product not found",
+    statusCode: 404,
   });
+
+  //  ensure no further calls
+  expect(productDb.dbGetVariantsByProductId).not.toHaveBeenCalled();
+  expect(productDb.dbGetMediaByProductId).not.toHaveBeenCalled();
+});
+
 });

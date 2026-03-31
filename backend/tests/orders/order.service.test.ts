@@ -17,14 +17,225 @@ vi.mock("@/modules/products/product.db", () => ({
 vi.mock("@/modules/stores/store.db", () => ({
   dbGetStoreById: vi.fn(),
 }));
-
+import { updateCreatorOrderStatus } from "@/modules/orders/order.service";
 /* ====================================================== */
-
+import * as payoutService from "@/modules/payouts/payout.service";
 import { createOrder } from "@/modules/orders/order.service";
 import * as orderDb from "@/modules/orders/order.db";
 import * as productDb from "@/modules/products/product.db";
 import * as storeDb from "@/modules/stores/store.db";
 import { ApiError } from "@/shared/api-error";
+import * as adminAuditLogDb from "@/modules/admin/admin-audit.db";
+// describe("Creator Order Status Update (Lifecycle)", () => {
+//   const creatorId = "user-1";
+//   const storeId = "store-1";
+
+//   beforeEach(() => {
+//     vi.clearAllMocks();
+//   });
+
+//   /* =========================================
+//      STORE NOT FOUND
+//   ========================================= */
+//   it("should throw if store not found", async () => {
+//     vi.mocked(storeDb.dbGetStoreByUserId).mockResolvedValue(null as any);
+
+//     await expect(
+//       updateCreatorOrderStatus({
+//         creatorId,
+//         orderId: "order-1",
+//         newStatus: "SHIPPED",
+//       })
+//     ).rejects.toThrow("Store not found");
+//   });
+
+//   /* =========================================
+//      ORDER NOT FOUND
+//   ========================================= */
+//   it("should throw if order not found for store", async () => {
+//     vi.mocked(storeDb.dbGetStoreByUserId).mockResolvedValue({
+//       id: storeId,
+//     } as any);
+
+//     vi.mocked(orderDb.findOrderByIdAndStore).mockResolvedValue(null as any);
+
+//     await expect(
+//       updateCreatorOrderStatus({
+//         creatorId,
+//         orderId: "order-1",
+//         newStatus: "SHIPPED",
+//       })
+//     ).rejects.toThrow("Order not found");
+//   });
+
+//   /* =========================================
+//      INVALID TRANSITION
+//   ========================================= */
+//   it("should block invalid transition", async () => {
+//     vi.mocked(storeDb.dbGetStoreByUserId).mockResolvedValue({
+//       id: storeId,
+//     } as any);
+
+//     vi.mocked(orderDb.findOrderByIdAndStore).mockResolvedValue({
+//       id: "order-1",
+//       status: "PENDING",
+//       buyerEmail: "test@test.com",
+//     } as any);
+
+//     await expect(
+//       updateCreatorOrderStatus({
+//         creatorId,
+//         orderId: "order-1",
+//         newStatus: "DELIVERED", // skip
+//       })
+//     ).rejects.toThrow("Invalid status transition");
+//   });
+
+//   /* =========================================
+//       VALID TRANSITION
+//   ========================================= */
+//   it("should update order status when valid transition", async () => {
+//     vi.mocked(storeDb.dbGetStoreByUserId).mockResolvedValue({
+//       id: storeId,
+//     } as any);
+
+//     vi.mocked(orderDb.findOrderByIdAndStore).mockResolvedValue({
+//       id: "order-1",
+//       status: "PAID",
+//       buyerEmail: "test@test.com",
+//     } as any);
+
+//     vi.mocked(orderDb.updateOrderStatus).mockResolvedValue({
+//       id: "order-1",
+//       status: "SHIPPED",
+//     } as any);
+
+//     const result = await updateCreatorOrderStatus({
+//       creatorId,
+//       orderId: "order-1",
+//       newStatus: "SHIPPED",
+//     });
+
+//     expect(result.status).toBe("SHIPPED");
+
+//     expect(orderDb.updateOrderStatus).toHaveBeenCalledWith(
+//       "order-1",
+//       "SHIPPED"
+//     );
+//   });
+
+//   /* =========================================
+//      💰 PAYOUT TRIGGER
+//   ========================================= */
+//   it("should trigger payout when status becomes DELIVERED", async () => {
+//     vi.mocked(storeDb.dbGetStoreByUserId).mockResolvedValue({
+//       id: storeId,
+//     } as any);
+
+//     vi.mocked(orderDb.findOrderByIdAndStore).mockResolvedValue({
+//       id: "order-1",
+//       status: "SHIPPED",
+//       buyerEmail: "test@test.com",
+//     } as any);
+
+//     vi.mocked(orderDb.updateOrderStatus).mockResolvedValue({
+//       id: "order-1",
+//       status: "DELIVERED",
+//     } as any);
+
+//     const payoutSpy = vi
+//       .spyOn(payoutService, "createPayoutForOrderService")
+//       .mockResolvedValue({} as any);
+
+//     await updateCreatorOrderStatus({
+//       creatorId,
+//       orderId: "order-1",
+//       newStatus: "DELIVERED",
+//     });
+
+//     expect(payoutSpy).toHaveBeenCalledWith("order-1");
+//   });
+
+//   /* =========================================
+//      🧾 AUDIT LOG
+//   ========================================= */
+//   it("should create audit log on status update", async () => {
+//     vi.mocked(storeDb.dbGetStoreByUserId).mockResolvedValue({
+//       id: storeId,
+//     } as any);
+
+//     vi.mocked(orderDb.findOrderByIdAndStore).mockResolvedValue({
+//       id: "order-1",
+//       status: "PAID",
+//       buyerEmail: "test@test.com",
+//     } as any);
+
+//     vi.mocked(orderDb.updateOrderStatus).mockResolvedValue({
+//       id: "order-1",
+//       status: "SHIPPED",
+//     } as any);
+
+//     const auditSpy = vi
+//       .spyOn(adminAuditLogDb, "createLog")
+//       .mockResolvedValue({} as any);
+
+//     await updateCreatorOrderStatus({
+//       creatorId,
+//       orderId: "order-1",
+//       newStatus: "SHIPPED",
+//     });
+
+//     expect(auditSpy).toHaveBeenCalledWith(
+//       expect.objectContaining({
+//         action: "ORDER_STATUS_UPDATED",
+//         entityId: "order-1",
+//       })
+//     );
+//   });
+
+//   /* =========================================
+//      📧 EMAIL JOB
+//   ========================================= */
+//   // it("should enqueue email job after update", async () => {
+//   //   vi.mocked(storeDb.dbGetStoreByUserId).mockResolvedValue({
+//   //     id: storeId,
+//   //   } as any);
+
+//   //   vi.mocked(orderDb.findOrderByIdAndStore).mockResolvedValue({
+//   //     id: "order-1",
+//   //     status: "PAID",
+//   //     buyerEmail: "buyer@test.com",
+//   //   } as any);
+
+//   //   vi.mocked(orderDb.updateOrderStatus).mockResolvedValue({
+//   //     id: "order-1",
+//   //     status: "SHIPPED",
+//   //   } as any);
+
+//   //   const jobSpy = vi
+//   //     .spyOn(jobDb, "createJob")
+//   //     .mockResolvedValue({} as any);
+
+//   //   await updateCreatorOrderStatus({
+//   //     creatorId,
+//   //     orderId: "order-1",
+//   //     newStatus: "SHIPPED",
+//   //   });
+
+//   //   expect(jobSpy).toHaveBeenCalledWith(
+//   //     expect.objectContaining({
+//   //       type: "EMAIL",
+//   //       payload: expect.objectContaining({
+//   //         to: "buyer@test.com",
+//   //       }),
+//   //     })
+//   //   );
+//   // });
+// });
+
+
+
+
 
 describe("Order Module - Order Creation (Unit)", () => {
 
@@ -79,12 +290,12 @@ it("should create order successfully", async () => {
 });
 
   /* =====================================================
-     2️⃣ PRODUCT NOT FOUND
+      PRODUCT NOT FOUND
   ===================================================== */
 it("should throw if product not found", async () => {
 
   vi.mocked(orderDb.findPublishedProductForOrder)
-    .mockResolvedValue(null);
+    .mockResolvedValue(undefined);
 
   await expect(createOrder(validInput))
     .rejects
@@ -95,7 +306,7 @@ it("should throw if product not found", async () => {
 
   // Simulate unpublished product (DB does not return it)
   vi.mocked(orderDb.findPublishedProductForOrder)
-    .mockResolvedValue(null);
+    .mockResolvedValue(undefined);
 
   await expect(createOrder(validInput))
     .rejects
@@ -104,12 +315,12 @@ it("should throw if product not found", async () => {
 });
 
   // /* =====================================================
-  //    4️⃣ STORE PRIVATE
+  //     STORE PRIVATE
   // ===================================================== */
 
   it("should block private store", async () => {
 
-  // 🟢 Product exists
+  //  Product exists
   vi.mocked(orderDb.findPublishedProductForOrder)
     .mockResolvedValue({
       id: "prod-1",
@@ -117,7 +328,7 @@ it("should throw if product not found", async () => {
       storeId: "store-1",
     } as any);
 
-  // 🔴 Store is private
+  //  Store is private
   vi.mocked(orderDb.findStoreById)
     .mockResolvedValue({
       id: "store-1",
@@ -135,7 +346,7 @@ it("should throw if product not found", async () => {
 
 it("should block ordering during vacation mode", async () => {
 
-  // 🟢 Product exists
+  //  Product exists
   vi.mocked(orderDb.findPublishedProductForOrder)
     .mockResolvedValue({
       id: "prod-1",
@@ -143,12 +354,12 @@ it("should block ordering during vacation mode", async () => {
       storeId: "store-1",
     } as any);
 
-  // 🔴 Store in vacation mode
+  //  Store in vacation mode
   vi.mocked(orderDb.findStoreById)
     .mockResolvedValue({
       id: "store-1",
       isPublic: true,
-      isVacationMode: true, // ✅ correct field name
+      isVacationMode: true, //  correct field name
     } as any);
 
   await expect(createOrder(validInput))
@@ -158,21 +369,18 @@ it("should block ordering during vacation mode", async () => {
 });
 
 
-  // /* =====================================================
-  //    6️⃣ PRICE FREEZING VALIDATION
-  // ===================================================== */
 
 it("should freeze product price at time of order", async () => {
 
-  // 🟢 Product exists
+  //  Product exists
   vi.mocked(orderDb.findPublishedProductForOrder)
     .mockResolvedValue({
       id: "prod-1",
-      price: "150.00",   // 🔥 current price
+      price: "150.00",   //  current price
       storeId: "store-1",
     } as any);
 
-  // 🟢 Store is valid
+  //  Store is valid
   vi.mocked(orderDb.findStoreById)
     .mockResolvedValue({
       id: "store-1",
@@ -180,21 +388,21 @@ it("should freeze product price at time of order", async () => {
       isVacationMode: false,
     } as any);
 
-  // 🟢 Variant exists
+  //  Variant exists
   vi.mocked(orderDb.findVariantForOrder)
     .mockResolvedValue({
       id: "var-1",
       productId: "prod-1",
-      price: "150.00",  // 🔥 variant price
+      price: "150.00",  //  variant price
     } as any);
 
-  // 🟢 Buyer exists
+  //  Buyer exists
   vi.mocked(orderDb.findBuyerByEmailAndPhone)
     .mockResolvedValue({
       id: "buyer-1",
     } as any);
 
-  // 👇 Spy on insertOrder
+  //  Spy on insertOrder
   const insertSpy = vi.mocked(orderDb.insertOrder)
     .mockResolvedValue({
       id: "order-1",
@@ -203,7 +411,7 @@ it("should freeze product price at time of order", async () => {
 
   await createOrder(validInput);
 
-  // 🔥 IMPORTANT ASSERTION
+  //  IMPORTANT ASSERTION
  expect(insertSpy).toHaveBeenCalledWith(
   expect.objectContaining({
     priceAtPurchase: "150",
@@ -215,16 +423,3 @@ it("should freeze product price at time of order", async () => {
 });
 
 // import { describe, it, expect, beforeEach } from "vitest";
-// import { db } from "@/config/db"; // or relative path
-
-// describe("Feature Name", () => {
-
-//   beforeEach(async () => {
-//     // optional setup   
-//   });
-
-//   it("should do something", async () => {
-//     // test logic
-//   });
-
-// });

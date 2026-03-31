@@ -1,92 +1,91 @@
-// import { describe, it, expect, beforeEach } from "vitest";
-// import { db } from "@/config/db"; // or relative path
-
-// describe("Feature Name", () => {
-
-//   beforeEach(async () => {
-//     // optional setup
-//   });
-
-//   it("should do something", async () => {
-//     // test logic
-//   });
-
-// });
 
 
-
-
-
-import { describe, it, expect, beforeEach } from "vitest";
-import { db } from "@/config/db";
-// import { stores } from "../../src/db/schema";
-import { stores } from "@/modules/stores/store.schema";
-import { products, productVariants , productMedia} from "@/modules/products/product.schema";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import * as productDb from "@/modules/products/product.db";
 
 import { addVariantToProduct } from "@/modules/products/product.service";
 
-describe("Variant Creation", () => {
-  let storeId: string;
-  let productId: string;
+vi.mock("@/modules/products/product.db");
 
-  beforeEach(async () => {
-    // 🔴 FK-safe cleanup order
-    await db.delete(productVariants);
-  await db.delete(productMedia);
-  await db.delete(products);
-  await db.delete(stores);
-   
-    
+describe("Variant Creation (Mocked)", () => {
+  const storeId = "store-1";
+  const productId = "product-1";
 
-    const [store] = await db
-      .insert(stores)
-      .values({
-        name: "Test Store",
-        userId: "user-1",
-        username: "testuser",
-      })
-      .returning();
-
-    storeId = store.id;
-    const [product] = await db
-      .insert(products)
-      .values({
-        storeId: storeId,
-        title: "Test Product",
-        status: "draft",
-        deletedAt: null, // ✅ REQUIRED
-      })
-      .returning();
-
-    productId = product.id;
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("should create a variant for a product", async () => {
-    const variant = await addVariantToProduct({
-      productId: productId,
-      storeId: storeId,
-      name: "Small",
-      price: 199,
-      inventory: 10,
-    });
+it("should create a variant for a product", async () => {
+  const mockProduct = {
+    id: productId,
+    storeId,
+    deletedAt: null,
+  };
 
-    expect(variant).not.toBeNull();
-    expect(variant?.name).toBe("Small");
-    // expect(variant?.price).toBe('199.00')
-    expect(variant?.inventory).toBe(10);
+  const dbVariant = {
+    id: "variant-1",
+    productId,
+    name: "Small",
+    price: "199", //  DB returns string
+    inventory: 10,
+  };
+
+  //  Arrange
+  vi.mocked(productDb.findProductForVariantInsert).mockResolvedValue(
+    mockProduct as any
+  );
+
+  vi.mocked(productDb.insertVariant).mockResolvedValue(
+    dbVariant as any
+  );
+
+  // Act
+  const result = await addVariantToProduct({
+    productId,
+    storeId,
+    name: "Small",
+    price: 199,
+    inventory: 10,
   });
 
-  it("should return null if product does not belong to store", async () => {
-    const variant = await addVariantToProduct({
-      productId:productId,
-      storeId: "f19f8cd6-a5d4-4769-bf71-88521ec52f93",
-      name: "Small",
-      price: 199,
-      inventory: 10,
-    });
+  // Assert (service transforms price)
+  expect(result).toEqual({
+    ...dbVariant,
+    price: "199.00", // formatted output
+  });
 
-    expect(variant).toBeNull();
+  expect(productDb.findProductForVariantInsert).toHaveBeenCalledWith({
+    productId,
+    storeId,
+  });
+
+  expect(productDb.insertVariant).toHaveBeenCalledWith({
+    productId,
+    name: "Small",
+    price: "199", // string sent to DB
+    inventory: 10,
   });
 });
 
+it("should throw if product does not belong to store", async () => {
+  // Arrange → simulate ownership failure
+  vi.mocked(productDb.findProductForVariantInsert).mockResolvedValue(undefined);
 
+  // Act + Assert
+  await expect(
+    addVariantToProduct({
+      productId,
+      storeId: "f19f8cd6-a5d4-4769-bf71-88521ec52f93", // wrong store
+      name: "Small",
+      price: 199,
+      inventory: 10,
+    })
+  ).rejects.toMatchObject({
+    message: "Product not found or not owned",
+    statusCode: 404,
+  });
+
+  //  ensure insert never happens
+  expect(productDb.insertVariant).not.toHaveBeenCalled();
+});
+});

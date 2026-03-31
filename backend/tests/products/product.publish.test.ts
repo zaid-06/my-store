@@ -1,142 +1,192 @@
-// import { describe, it, expect, beforeEach } from "vitest";
-// import { db } from "@/config/db"; // or relative path
-
-// describe("Feature Name", () => {
-
-//   beforeEach(async () => {
-//     // optional setup
-//   });
-
-//   it("should do something", async () => {
-//     // test logic
-//   });
-
-// });
 
 
+import { ApiError } from "@/shared/api-error";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { describe, it, expect, beforeEach } from "vitest";
-import { db } from "@/config/db";
-
-import { stores } from "@/modules/stores/store.schema";
 import {
-  products,
-  productVariants,
-  productMedia,
-} from "@/modules/products/product.schema";
+  publishProduct,
+  getSinglePublishedProductByStoreAndId,
+} from "@/modules/products/product.service";
 
-import { getSinglePublishedProductByStoreAndId , publishProduct } from "@/modules/products/product.service";
+import * as productDb from "@/modules/products/product.db";
+import *  as storeDb from "@/modules/stores/store.db"
 
-describe("Product Publishing Validation", () => {
-  let storeId: string;
-  let productId: string;
+vi.mock("@/modules/products/product.db");
+vi.mock("@/modules/stores/store.db");
 
-  beforeEach(async () => {
-    // FK safe cleanup order
-    await db.delete(productVariants);
-  await db.delete(productMedia);
-  await db.delete(products);
-  await db.delete(stores);
+describe("Product Publishing Validation (MOCKED)", () => {
+  const storeId = "store-1";
+  const productId = "product-1";
 
-    // create store
-    const [store] = await db
-      .insert(stores)
-      .values({
-        name: "Test Store",
-        userId: "user-1",
-        username: "testuser",
-
-      })
-      .returning();
-
-    storeId = store.id;
-
-    // create draft product
-    const [product] = await db
-      .insert(products)
-      .values({
-        storeId : storeId,
-        title: "Test Product",
-        status: "draft",
-        deletedAt: null, // ✅ REQUIRED
-
-      })
-      .returning();
-
-    productId = product.id;
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
 
-  // ✅ should fail without variant
-  it("should NOT publish if no variants exist", async () => {
-  // const publishResult = await publishProduct({
-  //   productId,
-  //   storeId,
-  // });
+it("should throw if no variants exist", async () => {
+  // Arrange
+  vi.mocked(productDb.dbGetSinglePublishedProduct).mockResolvedValue({
+    id: productId,
+    storeId,
+    status: "published",
+  } as any);
 
-  // expect(publishResult).toBeNull();
+  vi.mocked(productDb.dbGetVariantsByProductId).mockResolvedValue([]);
+  vi.mocked(productDb.dbGetMediaByProductId).mockResolvedValue([
+    { id: "m1" },
+  ] as any);
 
-  const result = await getSinglePublishedProductByStoreAndId({
+  // Act + Assert
+  await expect(
+    getSinglePublishedProductByStoreAndId({
+      productId,
+      storeId,
+    })
+  ).rejects.toThrow(ApiError);
+
+  await expect(
+    getSinglePublishedProductByStoreAndId({
+      productId,
+      storeId,
+    })
+  ).rejects.toThrow("Product not found");
+
+  //  verify flow
+  expect(productDb.dbGetSinglePublishedProduct).toHaveBeenCalledWith({
     productId,
     storeId,
   });
 
-  expect(result).toBeNull();
+  expect(productDb.dbGetVariantsByProductId).toHaveBeenCalledWith(productId);
+  expect(productDb.dbGetMediaByProductId).toHaveBeenCalledWith(productId);
 });
 
-  // ✅ should fail without media
-  it("should NOT publish if no media exist", async () => {
-    // add variant only
-    await db.insert(productVariants).values({
-      productId: productId,
-      name: "Small",
-      price: "199",
-      inventory: 10,
-    });
+  //  no media
 
-    const result = await getSinglePublishedProductByStoreAndId({
-      productId: productId,
-      storeId: storeId,
-    });
+it("should throw if no media exist", async () => {
+  // Arrange
+  vi.mocked(productDb.dbGetSinglePublishedProduct).mockResolvedValue({
+    id: productId,
+    storeId,
+    status: "published",
+  } as any);
 
-    expect(result).toBeNull();
-  });
+  //  has variants
+  vi.mocked(productDb.dbGetVariantsByProductId).mockResolvedValue([
+    { id: "v1" },
+  ] as any);
 
-  // ✅ should publish when rules satisfied
-  it("should publish when product has variant and media", async () => {
-    await db.insert(productVariants).values({
-      productId: productId,
-      name: "large",
-      price: "199",
-      inventory: 10,
-    });
+  //  no media
+  vi.mocked(productDb.dbGetMediaByProductId).mockResolvedValue([]);
 
-    await db.insert(productMedia).values({
-      productId: productId,
-      url: "https://example.com/image.jpg",
-      type: "image",
-    });  
-    await publishProduct({
+  // Act + Assert
+  await expect(
+    getSinglePublishedProductByStoreAndId({
       productId,
       storeId,
-    });
+    })
+  ).rejects.toThrow(ApiError);
 
-    const result = await getSinglePublishedProductByStoreAndId({
-      productId: productId,
-      storeId: storeId,
-    });
+  await expect(
+    getSinglePublishedProductByStoreAndId({
+      productId,
+      storeId,
+    })
+  ).rejects.toThrow("Product not found");
 
-    expect(result).not.toBeNull();
-    expect(result?.status).toBe("published");
+  //  verify calls
+  expect(productDb.dbGetSinglePublishedProduct).toHaveBeenCalledWith({
+    productId,
+    storeId,
   });
 
-  // ✅ wrong store
-  it("should NOT publish if product does not belong to store", async () => {
-    const result = await getSinglePublishedProductByStoreAndId({
-      productId: productId,
-      storeId: "f19f8cd6-a5d4-4769-bf71-88521ec52f93",
-    });
+  expect(productDb.dbGetVariantsByProductId).toHaveBeenCalledWith(productId);
+  expect(productDb.dbGetMediaByProductId).toHaveBeenCalledWith(productId);
+});
 
-    expect(result).toBeNull();
+  it("should publish when valid", async () => {
+  // Arrange
+  const mockStore = {
+    id: storeId,
+    isSuspended: false,
+  };
+
+  const mockProduct = {
+    id: productId,
+    storeId,
+    status: "draft",
+  };
+
+  vi.mocked(storeDb.dbGetStoreById).mockResolvedValue(mockStore as any);
+
+  vi.mocked(productDb.findProductForPublish).mockResolvedValue(
+    mockProduct as any
+  );
+
+  vi.mocked(productDb.countProductVariants).mockResolvedValue(1);
+  vi.mocked(productDb.countProductMedia).mockResolvedValue(1);
+
+  vi.mocked(productDb.updateProductStatus).mockResolvedValue({
+    id: productId,
+    status: "published",
+  } as any);
+
+  // Act
+  const result = await publishProduct({ productId, storeId });
+
+  // Assert (result)
+  expect(result).toEqual({
+    id: productId,
+    status: "published",
   });
+
+  //  verify full flow
+  expect(storeDb.dbGetStoreById).toHaveBeenCalledWith(storeId);
+
+  expect(productDb.findProductForPublish).toHaveBeenCalledWith({
+    productId,
+    storeId,
+  });
+
+  expect(productDb.countProductVariants).toHaveBeenCalledWith(productId);
+  expect(productDb.countProductMedia).toHaveBeenCalledWith(productId);
+
+  expect(productDb.updateProductStatus).toHaveBeenCalledWith({
+    productId,
+    status: "published",
+  });
+});
+
+
+it("should throw if no variants or media exist", async () => {
+  // Arrange
+  vi.mocked(productDb.dbGetSinglePublishedProduct).mockResolvedValue({
+    id: productId,
+    storeId,
+    status: "published",
+  } as any);
+
+  vi.mocked(productDb.dbGetVariantsByProductId).mockResolvedValue([]);
+  vi.mocked(productDb.dbGetMediaByProductId).mockResolvedValue([]);
+
+  // Act
+  const promise = getSinglePublishedProductByStoreAndId({
+    productId,
+    storeId,
+  });
+
+  // Assert
+  await expect(promise).rejects.toMatchObject({
+    message: "Product not found",
+    statusCode: 404,
+  });
+
+  expect(productDb.dbGetSinglePublishedProduct).toHaveBeenCalledWith({
+    productId,
+    storeId,
+  });
+
+  expect(productDb.dbGetVariantsByProductId).toHaveBeenCalledWith(productId);
+  expect(productDb.dbGetMediaByProductId).toHaveBeenCalledWith(productId);
+});
 });
