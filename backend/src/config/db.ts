@@ -14,7 +14,6 @@ import * as jobSchema from "../modules/jobs/job.schema";
 import * as adminAuditSchema from "../modules/admin/admin-audit.schema";
 
 
-
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
 });

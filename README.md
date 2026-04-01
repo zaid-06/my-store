@@ -40,8 +40,15 @@ All environment variables are managed via a **single `.env` file in the root**.
 
 ```env
 
+
 # Backend
-DATABASE_URL=postgresql://mystore_user:mystore_password@postgres:5432/mystore
+# DB creds (single source of truth)
+POSTGRES_USER=user
+POSTGRES_PASSWORD=password
+POSTGRES_DB=mystore
+
+# Build DATABASE_URL dynamically
+DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
 
 BETTERAUTH_SECRET=your-secret-key
 BETTERAUTH_URL=http://localhost:5000

@@ -5,9 +5,9 @@ services:
     image: postgres:15
     container_name: mystore-postgres
     environment:
-      POSTGRES_USER: mystore_user
-      POSTGRES_PASSWORD: mystore_password
-      POSTGRES_DB: mystore
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
