@@ -5,106 +5,15 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1769893878932,
-      "tag": "0000_eminent_ikaris",
+      "when": 1775630656359,
+      "tag": "0000_classy_lucky_pierre",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1771074631796,
-      "tag": "0001_perpetual_mach_iv",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1771141509464,
-      "tag": "0002_faithful_titania",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1771280642279,
-      "tag": "0003_next_harrier",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1772104743846,
-      "tag": "0004_tough_phantom_reporter",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1773048968449,
-      "tag": "0005_clammy_meggan",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1773051057103,
-      "tag": "0006_confused_agent_zero",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1773052449021,
-      "tag": "0007_watery_black_bird",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1773137728895,
-      "tag": "0008_abandoned_lockheed",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1773306498896,
-      "tag": "0009_violet_justice",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1773669475721,
-      "tag": "0010_groovy_sage",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
-      "when": 1774279707626,
-      "tag": "0011_free_celestials",
-      "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "7",
-      "when": 1774532668507,
-      "tag": "0012_lumpy_galactus",
-      "breakpoints": true
-    },
-    {
-      "idx": 13,
-      "version": "7",
-      "when": 1774593600805,
-      "tag": "0013_kind_stature",
-      "breakpoints": true
-    },
-    {
-      "idx": 14,
-      "version": "7",
-      "when": 1774605920413,
-      "tag": "0014_rich_morg",
+      "when": 1775648230701,
+      "tag": "0001_square_otto_octavius",
       "breakpoints": true
     }
   ]

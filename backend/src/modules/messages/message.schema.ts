@@ -11,30 +11,53 @@ import {
 import { z } from "zod";
 import { orders } from "../orders/order.schema";
 import { stores } from "../stores/store.schema";
+import { customers } from "../customers/customers.schema";
+
+//  NEW: Conversations linked to customers, not buyers (BetterAuth users)
 // import { user } from "../../auth.schema"; // agar BetterAuth users table hai
 
+// export const conversations = pgTable("conversations", {
+//   id: uuid("id").defaultRandom().primaryKey(),
+
+//   orderId: uuid("order_id")
+//     .notNull()
+//     .unique()
+//     .references(() => orders.id, { onDelete: "cascade" }),
+
+//   storeId: uuid("store_id")
+//     .notNull()
+//     .references(() => stores.id, { onDelete: "cascade" }),
+
+//   creatorId: text("creator_id").notNull(), // BetterAuth userId
+
+//   buyerId: uuid("buyer_id"), // nullable for guest buyers
+
+//   buyerEmail: text("buyer_email").notNull(),
+
+//   isDisputed: boolean("is_disputed").default(false).notNull(),
+
+//   createdAt: timestamp("created_at").defaultNow().notNull(),
+
+//   updatedAt: timestamp("updated_at")
+//     .defaultNow()
+//     .$onUpdate(() => new Date()),
+// });
 export const conversations = pgTable("conversations", {
   id: uuid("id").defaultRandom().primaryKey(),
-
   orderId: uuid("order_id")
     .notNull()
     .unique()
     .references(() => orders.id, { onDelete: "cascade" }),
-
   storeId: uuid("store_id")
     .notNull()
     .references(() => stores.id, { onDelete: "cascade" }),
-
-  creatorId: text("creator_id").notNull(), // BetterAuth userId
-
-  buyerId: uuid("buyer_id"), // nullable for guest buyers
-
-  buyerEmail: text("buyer_email").notNull(),
-
+  //  REMOVE creatorId (derive via store → merchant → user)
+  //  NEW
+  customerId: uuid("customer_id")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
   isDisputed: boolean("is_disputed").default(false).notNull(),
-
   createdAt: timestamp("created_at").defaultNow().notNull(),
-
   updatedAt: timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => new Date()),
@@ -42,9 +65,6 @@ export const conversations = pgTable("conversations", {
 
 export type Conversation = typeof conversations.$inferSelect;
 export type NewConversation = typeof conversations.$inferInsert;
-
-
-
 // import { conversations } from "./message.schema";
 
 // sender roles enum

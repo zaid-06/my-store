@@ -9,12 +9,17 @@ export const dbCreateStore = (data: any) => {
 };
 
 // READ
-  export const dbGetStoreByUserId = (userId: string) => {
-    return db.query.stores.findFirst({
-      where: eq(stores.userId, userId),
-    });
-  };
+  // export const dbGetStoreByUserId = (userId: string) => {
+  //   return db.query.stores.findFirst({
+  //     where: eq(stores.userId, userId),
+  //   });
+  // };
 
+  export const dbGetStoreByMerchantId = async (merchantId: string) => {
+  return db.query.stores.findFirst({
+    where: eq(stores.merchantId, merchantId),
+  });
+};
 export const dbGetStoreByUsername = (username: string) => {
   return db.query.stores.findFirst({
     where: eq(stores.username, username),
@@ -35,19 +40,34 @@ export const dbListStores = () => {
 };
 
 // UPDATE
-export const dbUpdateStoreByUserId = (userId: string, data: any) => {
+// export const dbUpdateStoreByUserId = (userId: string, data: any) => {
+//   return db
+//     .update(stores)
+//     .set(data)
+//     .where(eq(stores.userId, userId))
+//     .returning();
+// };
+
+export const dbUpdateStoreByMerchantId = (merchantId: string, data: any) => {
   return db
     .update(stores)
     .set(data)
-    .where(eq(stores.userId, userId))
+    .where(eq(stores.merchantId, merchantId))
     .returning();
 };
 
-export const dbSoftDeleteStoreByUserId = (userId: string) => {
+
+// export const dbSoftDeleteStoreByUserId = (userId: string) => {
+//   return db
+//     .update(stores)
+//     .set({ deletedAt: new Date() })
+//     .where(eq(stores.userId, userId));  
+// };
+export const dbSoftDeleteStoreByMerchantId = (merchantId: string) => {
   return db
     .update(stores)
     .set({ deletedAt: new Date() })
-    .where(eq(stores.userId, userId));  
+    .where(eq(stores.merchantId, merchantId));  
 };
 
 export const dbRestoreStoreById = (id: string) => {

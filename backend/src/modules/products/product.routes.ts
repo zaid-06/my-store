@@ -1,8 +1,8 @@
 // src/modules/products/product.routes.ts
 
 import { Router } from "express";
-import { Role } from "../../types/roles";
-import { requireAuth, requireRole } from "../auth/auth.middleware";
+import { requireAuth} from "../auth/auth.middleware";
+import {requireMerchant} from "../../middlewares/requireMerchant";
 import {
   createProductController,
   createCategoryController,
@@ -26,7 +26,7 @@ export const productRoutes = Router();
 productRoutes.post(
   "/",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   createProductController
 );
 
@@ -34,7 +34,7 @@ productRoutes.post(
 productRoutes.get(
   "/",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   getOwnProductsController
 );
 
@@ -42,7 +42,7 @@ productRoutes.get(
 productRoutes.post(
   "/categories",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   createCategoryController
 );
 
@@ -50,7 +50,6 @@ productRoutes.post(
 productRoutes.get(
   "/categories",
   requireAuth,
-  requireRole(Role.CREATOR),
   listCategoriesController
 );
 
@@ -58,14 +57,14 @@ productRoutes.get(
 productRoutes.get(
   "/:id",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   getSingleProductController
 );
 
 productRoutes.patch(
   "/:id",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   updateProductController
 );
 
@@ -73,7 +72,7 @@ productRoutes.patch(
 productRoutes.delete(
   "/:id",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   deleteProductController
 );
 
@@ -81,7 +80,7 @@ productRoutes.delete(
 productRoutes.post(
   "/:id/variants",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   addVariantController
 );
 
@@ -89,15 +88,14 @@ productRoutes.post(
 productRoutes.patch(
   "/:id/variants/:variantId",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   updateVariantController
 );
-
 // product.routes.ts
 productRoutes.delete(
   "/:id/variants/:variantId",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   deleteVariantController
 );
 
@@ -105,14 +103,14 @@ productRoutes.delete(
 productRoutes.post(
   "/:id/media",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   addMediaController
 );
 // product.routes.ts
 productRoutes.delete(
   "/:id/media/:mediaId",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   removeMediaController
 );
 
@@ -120,10 +118,9 @@ productRoutes.delete(
 productRoutes.get(
   "/:id/downloads",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   listProductDownloadsController
 );
 
 
 
-// console.log("username.####################");

@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { Role } from "../../types/roles";
 
 import {
   createStoreController,
@@ -8,7 +7,7 @@ import {
   updateStoreController,
    deleteMyStoreController,
 } from "./store.controller";
-import { requireAuth, requireRole } from "../auth/auth.middleware";
+import { requireAuth } from "../auth/auth.middleware";
 import { 
   listPublishedProductsByStoreController,
    getSinglePublishedProductController,
@@ -16,7 +15,7 @@ import {
 
 export const storeRoutes = Router();
 
-storeRoutes.post("/", requireAuth, requireRole(Role.CREATOR), createStoreController);
+storeRoutes.post("/", requireAuth, createStoreController);
 storeRoutes.get("/me", requireAuth, getMyStoreController);
 storeRoutes.patch("/me", requireAuth, updateStoreController);
 storeRoutes.delete("/me", requireAuth, deleteMyStoreController);
@@ -28,6 +27,8 @@ storeRoutes.get(
   "/:username/products",
   listPublishedProductsByStoreController
 );
+
+
 
 storeRoutes.get(
   "/:username/products/:productId",

@@ -13,7 +13,9 @@ export default defineConfig({
     "./src/modules/messages/message.schema.ts",
     "./src/modules/payouts/payout.schema.ts",
     "./src/modules/jobs/job.schema.ts",
-    "./src/modules/admin/admin-audit.schema.ts"
+    "./src/modules/admin/admin-audit.schema.ts",
+    "./src/modules/merchants/merchant.schema.ts",
+    "./src/modules/customers/customers.schema.ts"
   ],
 
   dialect: "postgresql",

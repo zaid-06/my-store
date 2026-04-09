@@ -1,7 +1,7 @@
 // import { ApiError } from "@/shared/api-error";
 import { ApiError } from "../../shared/api-error";
 import * as orderDb from "./order.db";
-import { dbGetStoreByUserId } from "../stores/store.db";
+import { getMyStoreService } from "../stores/store.service";
 import * as jobDb from "../jobs/job.db"; 
 import { createPayoutForOrderService } from "../payouts/payout.service";
 import * as adminAuditLogDb from "../admin/admin-audit.db";
@@ -9,9 +9,9 @@ type CreateOrderInput = {
   productId: string;
   variantId: string;
   quantity: number;
-  buyerName: string;
-  buyerEmail: string;
-  buyerPhone: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
   shippingAddress: any;
   paymentMethod: "ONLINE" | "COD";
 };
@@ -22,9 +22,9 @@ export const createOrder = async (input: CreateOrderInput) => {
     productId,
     variantId,
     quantity,
-    buyerName,
-    buyerEmail,
-    buyerPhone,
+    customerName,
+    customerEmail,
+    customerPhone,
     shippingAddress,
     paymentMethod,
   } = input;
@@ -72,16 +72,16 @@ export const createOrder = async (input: CreateOrderInput) => {
   const totalAmount = priceAtPurchase * quantity;
 
   // Buyer Handling
-  let buyer = await orderDb.findBuyerByEmailAndPhone(
-    buyerEmail,
-    buyerPhone
+  let customer = await orderDb.findCustomerByEmailAndPhone(
+    customerEmail,
+    customerPhone
   );
 
-  if (!buyer) {
-    buyer = await orderDb.createBuyer({
-      email: buyerEmail,
-      phone: buyerPhone,
-      name: buyerName,
+  if (!customer) {
+    customer = await orderDb.createCustomer({
+      email: customerEmail,
+      phone: customerPhone,
+      name: customerName,
     });
   }
 
@@ -90,10 +90,10 @@ export const createOrder = async (input: CreateOrderInput) => {
     storeId: product.storeId,
     productId,
     variantId,
-    buyerId: buyer.id,
-    buyerName,
-    buyerEmail,
-    buyerPhone,
+    customerId: customer.id,
+    customerName,
+    customerEmail,
+    customerPhone,
     shippingAddress,
     quantity,
     priceAtPurchase: priceAtPurchase.toString(),
@@ -105,7 +105,7 @@ export const createOrder = async (input: CreateOrderInput) => {
    await jobDb.createJob({
     type: "EMAIL",
     payload: {
-      to: buyerEmail, // correct source
+      to: customerEmail, // correct source
       template: "ORDER_CREATED",
       data: {
         orderId: order.id,
@@ -138,8 +138,7 @@ export const listCreatorOrders = async ({
 }: ListCreatorOrdersInput) => {
 
   // Find Creator Store
-  const store = await dbGetStoreByUserId(creatorId);
-  console.log("Store found for creator::::::::::::::::::::::::::::::::::::", store);
+  const store = await getMyStoreService(creatorId);
   if (!store) {
     throw new ApiError("Store not found", 404);
   }
@@ -171,7 +170,7 @@ export const getCreatorOrder = async ({
 }: GetCreatorOrderInput) => {
 
   // Find Creator Store
-  const store = await dbGetStoreByUserId(creatorId);
+  const store = await getMyStoreService(creatorId);
   if (!store) {
     throw new ApiError("Store not found", 404);
   }
@@ -208,14 +207,12 @@ export const updateCreatorOrderStatus = async ({
   newStatus,
 }: UpdateOrderStatusInput) => {
 // Find Store
-  const store = await dbGetStoreByUserId(creatorId);
+  const store = await getMyStoreService(creatorId);
 
   if (!store) {
     throw new ApiError("Store not found", 404);
   }
-
-    //  Find Order (Must Belong to Store)
-
+  //  Find Order (Must Belong to Store)
   const order = await orderDb.findOrderByIdAndStore(
     orderId,
     store.id
@@ -253,21 +250,21 @@ export const updateCreatorOrderStatus = async ({
   // }
 
   //  AUDIT LOG (Task 9 REQUIRED)
-  await adminAuditLogDb.createLog({
-    adminId: creatorId,
-    action: "ORDER_STATUS_UPDATED",
-    entityType: "ORDER",
-    entityId: orderId,
-    metadata: {
-      from: currentStatus,
-      to: newStatus,
-    },
-  });
+  // await adminAuditLogDb.createLog({
+  //   adminId: creatorId,
+  //   action: "ORDER_STATUS_UPDATED",
+  //   entityType: "ORDER",
+  //   entityId: orderId,
+  //   metadata: {
+  //     from: currentStatus,
+  //     to: newStatus,
+  //   },
+  // });
 
     await jobDb.createJob({
     type: "EMAIL",
     payload: {
-      to: order.buyerEmail, //  correct source
+      to: order.customerEmail, //  correct source
       template: "ORDER_STATUS_UPDATED",
       data: {
         orderId: order.id,
@@ -304,7 +301,7 @@ export const markOrderRefund = async ({
   let order;
 
   if (role === "CREATOR") {
-    const store = await dbGetStoreByUserId(userId);
+    const store = await getMyStoreService(userId);
     if (!store) {
       throw new ApiError("Store not found", 404);
     }

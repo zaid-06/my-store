@@ -18,10 +18,6 @@ export const user = pgTable("user", {
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
 
-  role: roleEnum("role")
-    .default("BUYER")
-    .notNull(),
-
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -112,7 +108,6 @@ export const accountRelations = relations(account, ({ one }) => ({
 export const userSchema = z.object({
   id: z.string(),
   email: z.string().email(),
-  role: z.enum(["ADMIN", "CREATOR"]),
 });
 
 export type User = z.infer<typeof userSchema>;

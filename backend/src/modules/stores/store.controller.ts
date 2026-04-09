@@ -1,7 +1,5 @@
 import { Request, Response } from "express";
-import { fromNodeHeaders } from "better-auth/node";
 import * as storeService from "./store.service";
-import { auth } from "../auth/auth.config";
 
 //  * Controller to create a new store for the authenticated user
 import { createStoreSchema } from "./store.schema";
@@ -11,8 +9,7 @@ import { updateStoreSchema } from "./store.schema";
 
 export const createStoreController = async (req: Request, res: Response) => {
   const userId = req.user!.id;
-
-
+  
   //  ZOD VALIDATION
   const parsed = createStoreSchema.safeParse(req.body);
 
@@ -32,10 +29,16 @@ export const createStoreController = async (req: Request, res: Response) => {
 
 
 //  * Controller to get the authenticated user's store
+// export const getMyStoreController = async (req: Request, res: Response) => {
+//   const userId = req.user!.id;
+//   const store = await storeService.getStoreByUserId(userId);
+//   return res.json(successResponse(store));
+// };
 export const getMyStoreController = async (req: Request, res: Response) => {
-    const userId = req.user!.id;
+  const userId = req.user!.id;
 
-  const store = await storeService.getStoreByUserId(userId);
+  const store = await storeService.getMyStoreService(userId);
+
   return res.json(successResponse(store));
 };
 
@@ -55,7 +58,7 @@ export const updateStoreController = async (req: Request, res: Response) => {
   
 
   const userId = req.user!.id;
-   // 🔥 enforce immutability BEFORE parsing
+   //  enforce immutability BEFORE parsing
   if ("username" in req.body) {
     throw new ApiError("Username cannot be changed", 400);
   }
@@ -66,6 +69,7 @@ export const updateStoreController = async (req: Request, res: Response) => {
   if (!parsed.success) {
     throw new ApiError(parsed.error.message, 400);
   }
+  
 
   const store = await storeService.updateStoreService(
     userId,

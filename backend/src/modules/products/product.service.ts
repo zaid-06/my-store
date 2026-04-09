@@ -39,14 +39,18 @@ import * as productDb from "./product.db";
 
 import * as storeDb from "../stores/store.db";
 import * as orderDb from "../orders/order.db";
-export const createProduct = async (data: {
+type CreateProductInput = {
   storeId: string;
   title: string;
   description?: string | null;
   isFeatured?: boolean;
   productType: "PHYSICAL" | "DIGITAL";
-}) => {
-  const store = await storeDb.dbGetStoreById(data.storeId);
+  categoryIds?: string[]; //  ADD
+};
+export const createProduct = async (data: CreateProductInput) => {
+  const { categoryIds = [], ...productData } = data;
+
+  const store = await storeDb.dbGetStoreById(productData.storeId);
 
   if (!store) {
     throw new ApiError("Store not found", 404);
@@ -58,15 +62,16 @@ export const createProduct = async (data: {
     throw new ApiError("Store is deleted", 400);
   }
 
-  
-  // Prevent weird edge case
-  // if (!data.title?.trim()) {
-  //   throw new ApiError("Product title is required", 400);
-  // }
+  //  Create product
+  const product = await productDb.insertProduct(productData);
 
-  return productDb.insertProduct(data);
+  //  NEW: link categories
+  if (categoryIds.length > 0) {
+    await productDb.insertProductCategories(product.id, categoryIds);
+  }
+
+  return product;
 };
-
 export const createCategory = async (
     storeId: string,
     name: string
@@ -126,7 +131,6 @@ export const getProductByIdForOwner = async ({
 
 
 
-
 export const updateProductByIdForOwner = async ({
   productId,
   storeId,
@@ -136,9 +140,8 @@ export const updateProductByIdForOwner = async ({
   storeId: string;
   data: UpdateProductInput;
 }) => {
-  //  Ownership + existence check
+  const { categoryIds, ...updateData } = data;
 
-  //  TASK 9 RULE
   const store = await storeDb.dbGetStoreById(storeId);
 
   if (!store) {
@@ -146,33 +149,25 @@ export const updateProductByIdForOwner = async ({
   }
 
   assertStoreNotSuspended(store);
+
   const product = await findProductByIdAndStore(productId, storeId);
   if (!product) return null;
 
-  //  Publishing rules
-  if (data.status === "published") {
+  //  EXISTING VALIDATION (keep as is)
+  if (updateData.status === "published") {
     const variants = await findVariantsByProductId(productId);
     const media = await findMediaByProductId(productId);
 
     if (variants.length === 0) {
-      throw new ApiError(
-        "Cannot publish product without variants",
-        400
-      );
+      throw new ApiError("Cannot publish product without variants", 400);
     }
 
     if (media.length === 0) {
-      throw new ApiError(
-        "Cannot publish product without media",
-        400
-      );
+      throw new ApiError("Cannot publish product without media", 400);
     }
 
     if (variants.some((v) => v.inventory < 0)) {
-      throw new ApiError(
-        "Variant inventory cannot be negative",
-        400
-      );
+      throw new ApiError("Variant inventory cannot be negative", 400);
     }
 
     if (product.productType === "DIGITAL") {
@@ -187,13 +182,16 @@ export const updateProductByIdForOwner = async ({
     }
   }
 
-  //  Update
-  return await updateProductById(productId, data);
+  //  Update product
+  const updated = await updateProductById(productId, updateData);
+
+  //  NEW: update categories (only if provided)
+  if (categoryIds) {
+    await productDb.deleteProductCategories(productId);
+    await productDb.insertProductCategories(productId, categoryIds);
+  }
+  return updated;
 };
-
-
-
-
 
 
 export const softDeleteProduct = async ({

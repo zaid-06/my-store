@@ -84,3 +84,30 @@ export const getAllDigitalDownloads = async () => {
     })
     .from(digitalDownloads);
 };
+
+export const findDownloadByOrderAndProduct = async (
+  orderId: string,
+  productId: string
+) => {
+  return await db.query.digitalDownloads.findFirst({
+    where: (d, { eq, and }) =>
+      and(eq(d.orderId, orderId), eq(d.productId, productId)),
+  });
+};
+export const insertDownload = async (data: {
+  orderId: string;
+  productId: string;
+  variantId: string;
+  token: string;
+}) => {
+  const [download] = await db
+    .insert(digitalDownloads)
+    .values({
+      ...data,
+      maxDownloads: null,
+      expiresAt: null,
+    })
+    .returning();
+
+  return download;
+};

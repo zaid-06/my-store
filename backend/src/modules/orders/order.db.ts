@@ -1,9 +1,10 @@
 import { and, eq, isNull, gte, lte, notInArray } from "drizzle-orm";
 import { stores } from "../stores/store.schema";
-import { buyers} from "./order.schema";
+// import { buyers} from "./order.schema";
 import {  orders } from "./order.schema";
 import { db } from "../../config/db";
 import { products, productVariants, productMedia } from "../products/product.schema";
+import { customers } from "../customers/customers.schema";
 
 
 export const findPublishedProductForOrder = async (productId: string) => {
@@ -40,24 +41,29 @@ export const findVariantForOrder = async (
   });
 };
 
+
 // BUYER
 
-export const findBuyerByEmailAndPhone = async (
+
+export const findCustomerByEmailAndPhone = async (
   email: string,
   phone: string
 ) => {
-  return db.query.buyers.findFirst({
-    where: and(eq(buyers.email, email), eq(buyers.phone, phone)),
+  return db.query.customers.findFirst({
+    where: and(
+      eq(customers.email, email),
+      eq(customers.phone, phone)
+    ),
   });
 };
 
-export const createBuyer = async (data: {
+export const createCustomer = async (data: {
   email: string;
   phone: string;
   name: string;
 }) => {
-  const [buyer] = await db.insert(buyers).values(data).returning();
-  return buyer;
+  const [customer] = await db.insert(customers).values(data).returning();
+  return customer;
 };
 
 // ORDER

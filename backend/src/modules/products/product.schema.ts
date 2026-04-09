@@ -96,6 +96,8 @@ export const productSchema = z.object({
   productType: z.enum(["PHYSICAL", "DIGITAL"]).default("PHYSICAL"),
   // status: z.enum(["draft", "published", "archived"]),
   isFeatured: z.boolean(),
+  
+  categoryIds: z.array(z.string().uuid()).optional(),
 });
 
 export type ProductInput = z.infer<typeof productSchema>;
@@ -127,6 +129,7 @@ export const updateProductSchema = z.object({
   description: z.string().max(2000).optional(),
   status: z.enum(["draft", "published", "archived"]).optional(),
   isFeatured: z.boolean().optional(),
+   categoryIds: z.array(z.string().uuid()).optional(),
 });
 
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;

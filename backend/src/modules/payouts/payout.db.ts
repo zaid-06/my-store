@@ -11,7 +11,7 @@ export const findPayoutByOrderId = async (orderId: string) => {
 
 export const createPayout = async ({
   storeId,
-  creatorId,
+  merchantId,
   orderId,
   grossAmount,
   commissionAmount,
@@ -19,7 +19,7 @@ export const createPayout = async ({
   eligibleAt,
 }: {
   storeId: string;
-  creatorId: string;
+  merchantId: string;
   orderId: string;
   grossAmount: number;
   commissionAmount: number;
@@ -31,7 +31,7 @@ export const createPayout = async ({
     .insert(payouts)
     .values({
       storeId,
-      creatorId,
+      merchantId,
       orderId,
       grossAmount: grossAmount.toString(),
       commissionAmount: commissionAmount.toString(),
@@ -223,13 +223,17 @@ export const updatePayoutAmounts = async ({
 
 
 
-export const findPayoutWithCreator = async (payoutId: string) => {
+export const sfindPayoutWithMerchant = async (payoutId: string) => {
   return db.query.payouts.findFirst({
     where: eq(payouts.id, payoutId),
     with: {
       store: {
         with: {
-          user: true, // assuming store → user relation
+          merchant: {
+            with: {
+              user: true, // ✅ now correct path
+            },
+          },
         },
       },
     },

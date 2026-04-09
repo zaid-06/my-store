@@ -12,7 +12,8 @@ import * as messageSchema from "../modules/messages/message.schema";
 import * as payoutSchema from "../modules/payouts/payout.schema";
 import * as jobSchema from "../modules/jobs/job.schema";
 import * as adminAuditSchema from "../modules/admin/admin-audit.schema";
-
+import * as merchantSchema from "../modules/merchants/merchant.schema";
+import * as customerSchema from "../modules/customers/customers.schema";
 
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
@@ -29,6 +30,8 @@ export const db = drizzle(pool, {
     ...payoutSchema,
     ...jobSchema,
     ...adminAuditSchema,
+    ...merchantSchema,
+    ...customerSchema,
 
   },
 });

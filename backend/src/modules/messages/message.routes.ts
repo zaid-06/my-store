@@ -8,8 +8,9 @@ import {
   sendCreatorMessage,
 } from "./message.controller";
 import { Role } from "../../types/roles";
-import { requireAuth, requireRole } from "../auth/auth.middleware";
+import { requireAuth } from "../auth/auth.middleware";
 import { rateLimiter } from "../../middlewares/rateLimiter";
+import { requireMerchant } from "../../middlewares/requireMerchant";
 const router = Router();
 
 router.post("/order/:orderId",
@@ -21,21 +22,22 @@ router.patch("/:conversationId/dispute", escalateDispute);
 router.get(
   "/",
   requireAuth,
-  requireRole(Role.CREATOR),
+  // requireRole(Role.CREATOR),
+  requireMerchant,
   listCreatorConversations
 );
 
 router.get(
   "/:conversationId",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   getConversation
 );
 
 router.post(
   "/:conversationId",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   rateLimiter,
   sendCreatorMessage
 );

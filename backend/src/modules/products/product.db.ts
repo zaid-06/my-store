@@ -1,6 +1,6 @@
 import { db } from "../../config/db";
 import { and, eq, isNull ,count } from "drizzle-orm";
-import { products, productVariants, productMedia } from "./product.schema";
+import { products, productVariants, productMedia, productCategories } from "./product.schema";
 import { categories } from "./product.schema";
 /* ========== PRODUCTS ========== */
 
@@ -15,8 +15,25 @@ export const dbGetPublishedProductsByStoreId = (storeId: string) => {
   });
 }; 
 
+export const deleteProductCategories = async (productId: string) => {
+  await db
+    .delete(productCategories)
+    .where(eq(productCategories.productId, productId));
+};
 
+export const insertProductCategories = async (
+  productId: string,
+  categoryIds: string[]
+) => {
+  if (!categoryIds.length) return;
 
+  await db.insert(productCategories).values(
+    categoryIds.map((categoryId) => ({
+      productId,
+      categoryId,
+    }))
+  );
+};
 
 
 // Create product
@@ -95,7 +112,6 @@ export const findProductById = async (productId: string) => {
 //         isNull(products.deletedAt)
 //       )
 //     );
-
 //   return product ?? null;
 // };\
 export const findActiveProductByIdAndStoreId = async ({

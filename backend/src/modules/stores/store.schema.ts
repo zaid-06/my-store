@@ -11,11 +11,16 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import {user } from "../users/user.schema";
+
+import { merchants } from "../merchants/merchant.schema";
 export const stores = pgTable("stores", {
   id: uuid("id").defaultRandom().primaryKey(),
 
-  userId: varchar("user_id", { length: 255 }).notNull().unique(),
-
+  // userId: varchar("user_id", { length: 255 }).notNull().unique(),
+  merchantId: uuid("merchant_id")
+    .notNull()
+    .unique() // one store per merchant (keep if required)
+    .references(() => merchants.id, { onDelete: "cascade" }),
   username: varchar("username", { length: 30 }).notNull().unique(),
 
   name: varchar("name", { length: 80 }).notNull(),
@@ -38,9 +43,9 @@ export const stores = pgTable("stores", {
 });
 
 export const storesRelations = relations(stores, ({ one }) => ({
-  user: one(user, {
-    fields: [stores.userId],
-    references: [user.id],
+  merchant: one(merchants, {
+    fields: [stores.merchantId],
+    references: [merchants.id],
   }),
 }));
 
@@ -76,6 +81,17 @@ export const createStoreSchema = z.object({
   bannerUrl: z.string().url("Invalid URL").optional(),
 });
 
-export const updateStoreSchema = createStoreSchema
-  .omit({ username: true }) //  username cannot be updated
-  .partial(); //  all fields optional
+// export const updateStoreSchema = createStoreSchema
+//   .omit({ username: true }) //  username cannot be updated
+//   .partial(); //  all fields optional 
+
+export const updateStoreSchema = z.object({
+  name: z.string().optional(),
+  description: z.string().optional(),
+  avatarUrl: z.string().optional(),
+  bannerUrl: z.string().optional(),
+  isPublic: z.boolean().optional(),
+  isVacationMode: z.boolean().optional(),
+  announcementText: z.string().optional(),
+  announcementEnabled: z.boolean().optional(),
+});

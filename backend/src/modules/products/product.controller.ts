@@ -16,7 +16,7 @@ export const createProductController = async (
 ) => {
   const userId = req.user!.id;
 
-  const store = await storeService.getStoreByUserId(userId);
+  const store = await storeService.getMyStoreService(userId);
 
   if (!store) {
     throw new ApiError(
@@ -45,7 +45,7 @@ export const createCategoryController = async (
 ) => {
   const userId = req.user!.id;
 
-  const store = await storeService.getStoreByUserId(userId);
+  const store = await storeService.getMyStoreService(userId);
   if (!store) {
     throw new ApiError(
       "You must have a store to create categories",
@@ -77,7 +77,7 @@ export const listCategoriesController = async (
 ) => {
   const userId = req.user!.id;
 
-  const store = await storeService.getStoreByUserId(userId);
+  const store = await storeService.getMyStoreService(userId);
 
   if (!store) {
     throw new ApiError("You must have a store to view categories",400);
@@ -95,7 +95,7 @@ export const listCategoriesController = async (
 export const getOwnProductsController = async (req: Request, res: Response) => {
    const userId = req.user!.id;
 
-  const store = await storeService.getStoreByUserId(userId);
+  const store = await storeService.getMyStoreService(userId);
   if (!store) {
     throw new ApiError("Store not found", 400);
   }
@@ -112,7 +112,7 @@ export const getSingleProductController = async (
 ) => {
   const userId = req.user!.id;
 
-  const store = await storeService.getStoreByUserId(userId);
+  const store = await storeService.getMyStoreService(userId);
   if (!store) {
     throw new ApiError("Store not found", 400);
   }
@@ -138,41 +138,29 @@ export const updateProductController = async (
 ) => {
   const userId = req.user!.id;
 
-
-  const store = await storeService.getStoreByUserId(userId);
+  const store = await storeService.getMyStoreService(userId);
   if (!store) {
-    return res.status(400).json({ error: "Store not found" });
+    throw new ApiError("Store not found", 404);
   }
 
   const productId = req.params.id as string;
 
   const parsed = updateProductSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({
-      error: "Validation failed",
-      details: parsed.error.flatten().fieldErrors,
-    });
+    throw new ApiError(parsed.error.message, 400);
   }
 
-  try {
-    const product = await productService.updateProductByIdForOwner({
-      productId: productId,
-      storeId: store.id,
-      data: parsed.data,
-    });
+  const product = await productService.updateProductByIdForOwner({
+    productId,
+    storeId: store.id,
+    data: parsed.data,
+  });
 
-    if (!product) {
-      return res.status(404).json({ error: "Product not found" });
-    }
-
-    return res.status(200).json(successResponse(product));
-    
-  } catch (err: any) {
-    return res.status(400).json({
-      error: err.message ?? "Update failed",
-    });
+  if (!product) {
+    throw new ApiError("Product not found", 404);
   }
 
+  return res.status(200).json(successResponse(product));
 };
 
 
@@ -181,7 +169,7 @@ export const deleteProductController = async (
   res: Response
 ) => {
   const userId = req.user!.id;
-  const store = await storeService.getStoreByUserId(userId);
+  const store = await storeService.getMyStoreService(userId);
   if (!store) {
     throw new ApiError("Store not found", 400);
   }
@@ -206,7 +194,7 @@ export const addVariantController = async (
 ) => {
   const userId = req.user!.id;
 
-  const store = await storeService.getStoreByUserId(userId);
+  const store = await storeService.getMyStoreService(userId);
   if (!store) {
     throw new ApiError("Store not found", 400);
   }
@@ -238,7 +226,7 @@ export const updateVariantController = async (
 ) => {
   const userId = req.user!.id;
 
-  const store = await storeService.getStoreByUserId(userId);
+  const store = await storeService.getMyStoreService(userId);
   if (!store) {
     throw new ApiError("Store not found", 400);
   }
@@ -272,7 +260,7 @@ export const deleteVariantController = async (
 ) => {
   const userId = req.user!.id;
 
-  const store = await storeService.getStoreByUserId(userId);
+  const store = await storeService.getMyStoreService(userId);
 
   if (!store) {
     throw new ApiError("Store not found", 400);
@@ -296,7 +284,7 @@ export const addMediaController = async (
 ) => {
   const userId = req.user!.id;
 
-  const store = await storeService.getStoreByUserId(userId);
+  const store = await storeService.getMyStoreService(userId);
   if (!store) {
     throw new ApiError("Store not found", 400);
   }
@@ -327,7 +315,7 @@ export const removeMediaController = async (
 ) => {
   const userId = req.user!.id;
 
-  const store = await storeService.getStoreByUserId(userId);
+  const store = await storeService.getMyStoreService(userId);
   if (!store) {
     throw new ApiError("Store not found", 400);
   }
@@ -346,7 +334,7 @@ export const removeMediaController = async (
   );
 };
 
-// Remove Media Contlist Published Products By Store Controller
+
 export const listPublishedProductsByStoreController = async (
   req: Request<{ username: string }>,
   res: Response
@@ -355,13 +343,18 @@ export const listPublishedProductsByStoreController = async (
 
   const store = await storeService.getStoreByUsername(username);
 
-  if (!store) {
+  //  FIX: enforce public visibility
+  if (
+    !store ||
+    !store.isPublic ||
+    store.deletedAt ||
+    store.isSuspended
+  ) {
     throw new ApiError("Store not found", 404);
   }
-
+  
   const products =
     await productService.getPublishedProductsByStoreId(store.id);
-
   return res.json(successResponse(products));
 };
 

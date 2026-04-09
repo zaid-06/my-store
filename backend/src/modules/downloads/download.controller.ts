@@ -8,7 +8,6 @@ import { ApiError } from "../../shared/api-error";
 
 import * as storeService from "../stores/store.service";
 
-
 export const downloadController = async (req: Request, res: Response) => {
   const { token } = req.params;
 
@@ -26,7 +25,7 @@ export const listProductDownloadsController = async (
 ) => {
   const userId = req.user!.id;
   const productId = req.params.id as string;
-  const store = await storeService.getStoreByUserId(userId);
+  const store = await storeService.getMyStoreService(userId);
   if (!store) {
     throw new ApiError("Store not found", 400);
   }
@@ -43,8 +42,7 @@ export const listAllDownloadsController = async (
   req: Request,
   res: Response
 ) => {
-
   const downloads = await listAllDownloadsService();
-
   return res.json(successResponse(downloads));
 };
+

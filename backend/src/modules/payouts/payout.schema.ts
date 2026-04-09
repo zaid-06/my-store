@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { pgEnum, pgTable, uuid, numeric, timestamp, varchar, boolean } from "drizzle-orm/pg-core";
 import {stores} from "../stores/store.schema";
-
-
+import { relations } from "drizzle-orm";
+import { orders } from "../orders/order.schema";
+import { merchants } from "../merchants/merchant.schema";
 export const payoutStatusEnum = pgEnum("payout_status", [
   "LOCKED",
   "ELIGIBLE",
@@ -10,14 +11,54 @@ export const payoutStatusEnum = pgEnum("payout_status", [
   "CANCELLED",
 ]);
 
+// export const payouts = pgTable("payouts", {
+//   id: uuid("id").primaryKey().defaultRandom(),
+
+//   storeId: uuid("store_id").notNull(),
+
+//   creatorId: varchar("creator_id", { length: 255 }).notNull(),
+
+//   orderId: uuid("order_id").notNull().unique(),
+
+//   grossAmount: numeric("gross_amount", { precision: 10, scale: 2 }).notNull(),
+
+//   commissionAmount: numeric("commission_amount", {
+//     precision: 10,
+//     scale: 2,
+//   }).notNull(),
+
+//   netAmount: numeric("net_amount", { precision: 10, scale: 2 }).notNull(),
+
+//   status: payoutStatusEnum("status").default("LOCKED").notNull(),
+//   isFrozen: boolean("is_frozen").default(false),
+//   eligibleAt: timestamp("eligible_at").notNull(),
+
+//   releasedAt: timestamp("released_at"),
+
+//   createdAt: timestamp("created_at").defaultNow().notNull(),
+
+//   updatedAt: timestamp("updated_at")
+//     .defaultNow()
+//     .$onUpdate(() => new Date())
+//     .notNull(),
+// });
+
 export const payouts = pgTable("payouts", {
   id: uuid("id").primaryKey().defaultRandom(),
 
-  storeId: uuid("store_id").notNull(),
+  storeId: uuid("store_id")
+    .notNull()
+    .references(() => stores.id, { onDelete: "cascade" }),
 
-  creatorId: varchar("creator_id", { length: 255 }).notNull(),
+  //  REPLACED
+  merchantId: uuid("merchant_id")
+    .notNull()
+    .references(() => merchants.id, { onDelete: "cascade" }),
 
-  orderId: uuid("order_id").notNull().unique(),
+  orderId: uuid("order_id")
+    .notNull()
+    .unique()
+    .references(() => orders.id, { onDelete: "cascade" }),
 
   grossAmount: numeric("gross_amount", { precision: 10, scale: 2 }).notNull(),
 
@@ -29,7 +70,9 @@ export const payouts = pgTable("payouts", {
   netAmount: numeric("net_amount", { precision: 10, scale: 2 }).notNull(),
 
   status: payoutStatusEnum("status").default("LOCKED").notNull(),
+
   isFrozen: boolean("is_frozen").default(false),
+
   eligibleAt: timestamp("eligible_at").notNull(),
 
   releasedAt: timestamp("released_at"),
@@ -42,7 +85,7 @@ export const payouts = pgTable("payouts", {
     .notNull(),
 });
 
-import { relations } from "drizzle-orm";
+
 
 export const payoutsRelations = relations(payouts, ({ one }) => ({
   store: one(stores, {

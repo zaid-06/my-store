@@ -3,14 +3,16 @@ import { db } from "../../config/db";
 import { digitalDownloads } from "./download.schema";
 import { generateDownloadToken } from "../../shared/generateDownloadToken";
 import { ApiError } from "../../shared/api-error";
-import { getDownloadsForProduct } from "./download.db";
 
 import { Request } from "express";
 import {
+  getDownloadsForProduct  ,
+  findDownloadByOrderAndProduct,
   getDownloadByToken,
   getProductFile,
   incrementDownloadCount,
   logDownload,
+  insertDownload,
 } from "./download.db";
 
 export const getDownloadService = async (token: string, req: Request) => {
@@ -80,23 +82,62 @@ export const getDownloadService = async (token: string, req: Request) => {
 };
 
 
+// export const createDigitalDownload = async (
+//   orderId: string,
+//   productId: string,
+//   variantId: string
+// ) => {
+
+//   const token = generateDownloadToken();
+
+//   await db.insert(digitalDownloads).values({
+//     orderId,
+//     productId,
+//     variantId,
+//     token,
+//     maxDownloads: null,
+//     expiresAt: null
+//   });
+
+// };
+
 export const createDigitalDownload = async (
   orderId: string,
   productId: string,
   variantId: string
 ) => {
+  //  STEP A: check existing
+  const existing = await findDownloadByOrderAndProduct(
+    orderId,
+    productId
+  );
 
+  if (existing) {
+    return existing;
+  }
+
+  //  STEP B: create new
   const token = generateDownloadToken();
 
-  await db.insert(digitalDownloads).values({
-    orderId,
-    productId,
-    variantId,
-    token,
-    maxDownloads: null,
-    expiresAt: null
-  });
+  try {
+    const download = await insertDownload({
+      orderId,
+      productId,
+      variantId,
+      token,
+    });
 
+    return download;
+  } catch (err: any) {
+    //  STEP C: race condition handling
+    if (err.code === "23505") {
+      return await findDownloadByOrderAndProduct(
+        orderId,
+        productId
+      );
+    }
+    throw err;
+  }
 };
 
 

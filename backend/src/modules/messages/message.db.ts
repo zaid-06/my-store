@@ -14,21 +14,21 @@ export const findConversationByOrderId = async (orderId: string) => {
 export const createConversation = async ({
   orderId,
   storeId,
-  creatorId,
-  buyerEmail,
+  customerId,
+  
 }: {
   orderId: string;
   storeId: string;
-  creatorId: string;
-  buyerEmail: string;
+  customerId: string;
+  
 }) => {
   const [conversation] = await db
     .insert(conversations)
     .values({
       orderId,
       storeId,
-      creatorId,
-      buyerEmail,
+      customerId,
+    
     })
     .returning();
 

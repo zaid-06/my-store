@@ -2,11 +2,11 @@ import { env } from "../../config/env";
 import * as payoutDb from "./payout.db";
 import * as orderDb from "../orders/order.db";
 import { ApiError } from "../../shared/api-error";
-import { dbGetStoreByUserId } from "../stores/store.db";
 import * as storeDb from "../stores/store.db";
 import * as jobDb from "../jobs/job.db";
 import * as adminAuditLogDb from "../admin/admin-audit.db";
 import { assertStoreNotSuspended} from "../../guards/store.guard";
+import {getMyStoreService} from "../stores/store.service";
 
 //It is  called  from order service ( order delevered)
 export const createPayoutForOrderService = async (orderId: string) => {
@@ -17,7 +17,7 @@ export const createPayoutForOrderService = async (orderId: string) => {
   if (!order) {
     throw new ApiError("Order not found", 404);
   }
-  const store = await storeDb.dbGetStoreById(order.storeId);
+  const store = await getMyStoreService(order.storeId);
   if (!store) {
     throw new ApiError("Store not found", 404);
   }
@@ -43,7 +43,7 @@ export const createPayoutForOrderService = async (orderId: string) => {
 
   const payout = await payoutDb.createPayout({
     storeId: order.storeId,
-    creatorId: store.userId, // (assumption based on your schema)
+    merchantId: store.merchantId, // (assumption based on your schema)
     orderId: order.id,
     grossAmount,
     commissionAmount,
@@ -75,7 +75,7 @@ export const listCreatorPayoutsService = async ({
   endDate?: string;
 }) => {
   // find creator store
-  const store = await dbGetStoreByUserId(creatorId);
+  const store = await getMyStoreService(creatorId);
 
   if (!store) {
     throw new ApiError("Store not found", 404);
@@ -93,7 +93,7 @@ export const listCreatorPayoutsService = async ({
 
 export const getPayoutSummaryService = async (creatorId: string) => {
 
-  const store = await dbGetStoreByUserId(creatorId);
+  const store = await getMyStoreService(creatorId);
   if (!store) {
     throw new ApiError("Store not found", 404);
   }
@@ -159,14 +159,21 @@ export const releasePayoutService = async (payoutId: string, adminId: string ) =
   // if (!payout) {
   //   throw new ApiError("Payout not found", 404);
   // }
-  const payout = await payoutDb.findPayoutWithCreator(payoutId);
+  const payout = await payoutDb.findPayoutWithMerchant(payoutId);
 
   if (!payout) {
     throw new ApiError("Payout not found", 404);
   }
   const store = payout.store;
-  const creatorEmail = payout.store.user.email;
+  // const creatorEmail = payout.store.merchant.user.email;
 
+  const merchantUser = payout.store?.merchant?.user;
+
+  if (!merchantUser?.email) {
+    throw new ApiError("Merchant email not found", 500);
+  }
+
+const creatorEmail = merchantUser.email;
   // BLOCK IF STORE SUSPENDED
   assertStoreNotSuspended(store);
   //  TASK 9: BLOCK IF FROZEN
@@ -174,8 +181,8 @@ export const releasePayoutService = async (payoutId: string, adminId: string ) =
     throw new ApiError("Payout is frozen and cannot be released", 403);
   }
   // Idempotency protection
-  if (payout.status === "RELEASED") {
-    return payout;
+  if (payout.status === "RELEASED") { 
+    return payout; 
   }
 
   // Only ELIGIBLE payouts can be released

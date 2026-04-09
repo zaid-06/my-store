@@ -1,17 +1,18 @@
 import { Router } from "express";
-import { requireAuth, requireRole } from "../auth/auth.middleware";
+import { requireAuth } from "../auth/auth.middleware";
 import { listCreatorPayoutsController,
   getPayoutSummaryController,
   
  } from "./payout.controller";
-import { Role } from "../../types/roles";
+// import { Role } from "../../types/roles";
+import { requireMerchant } from "../../middlewares/requireMerchant";
 
 const router = Router();
 
 router.get(
   "/",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   listCreatorPayoutsController
 );
 
@@ -20,7 +21,7 @@ router.get(
 router.get(
   "/summary",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   getPayoutSummaryController
 );
 

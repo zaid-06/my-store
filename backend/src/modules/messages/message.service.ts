@@ -13,7 +13,8 @@ import {
   adminGetMessagesByConversationId,
 } from "./message.db";
 import { findOrderById } from "../orders/order.db";
-import { dbGetStoreByUserId ,dbGetStoreById } from "../stores/store.db";
+import { dbGetStoreById } from "../stores/store.db";
+import { getMyStoreService } from "../stores/store.service";
 import { ApiError } from "../../shared/api-error";
 import * as jobDb from "../jobs/job.db";
 import * as adminAuditLogDb from "../admin/admin-audit.db"
@@ -47,18 +48,16 @@ export const sendMessageForOrderService = async ({
     throw new ApiError("Cannot message cancelled order", 400);
   }
 
-  if (order.buyerEmail !== email || order.buyerPhone !== phone) {
+  if (order.customerEmail !== email || order.customerPhone !== phone) {
     throw new ApiError("Buyer verification failed", 403);
   }
-
   let conversation = await findConversationByOrderId(orderId);
-
   if (!conversation) {
     conversation = await createConversation({
       orderId,
       storeId: order.storeId,
-      creatorId: store.userId, // correct fix from earlier issue
-      buyerEmail: order.buyerEmail,
+      customerId: order.customerId,
+
     });
   }
 
@@ -68,7 +67,6 @@ export const sendMessageForOrderService = async ({
     senderId: email,
     content,
   });
-
   return message; // 
 };
 
@@ -88,8 +86,8 @@ export const getMessagesForOrderService = async ({
     throw new ApiError("Order not found", 404);
   }
 
-  if (order.buyerEmail !== email || order.buyerPhone !== phone) {
-    throw new ApiError("Buyer verification failed", 403);
+  if (order.customerEmail !== email || order.customerPhone !== phone) {
+    throw new ApiError("Customer verification failed", 403);
   }
 
   const conversation = await findConversationByOrderId(orderId);
@@ -122,16 +120,14 @@ export const escalateDisputeService = async ({
     throw new ApiError("Order not found", 404);
   }
 
-  if (order.buyerEmail !== email || order.buyerPhone !== phone) {
-    throw new ApiError("Buyer verification failed", 403);
+  if (order.customerEmail !== email || order.customerPhone !== phone) {
+    throw new ApiError("Customer verification failed", 403);
   }
 
   if (conversation.isDisputed) {
     throw new ApiError("Conversation already disputed", 400);
   }
-
   const updated = await setConversationDispute(conversationId, true);
-
   //  use env instead of hardcoded email
   await jobDb.createJob({
     type: "EMAIL",
@@ -176,7 +172,7 @@ export const listCreatorConversationsService = async ({
   isDisputed?: boolean;
 }) => {
   // 1. find creator store
-  const store = await dbGetStoreByUserId(creatorId);
+  const store = await getMyStoreService(creatorId);
 
   if (!store) {
     throw new ApiError("Store not found for creator", 404);
@@ -200,7 +196,7 @@ export const getConversationService = async ({
   conversationId: string;
 }) => {
   // 1. find creator store
-  const store = await dbGetStoreByUserId(creatorId);
+  const store = await getMyStoreService(creatorId);
 
   if (!store) {
     throw new ApiError("Store not found for creator", 404);
@@ -238,7 +234,7 @@ export const sendCreatorMessageService = async ({
   content: string;
 }) => {
   // 1. find creator store
-  const store = await dbGetStoreByUserId(creatorId);
+  const store = await getMyStoreService(creatorId);
 
   if (!store) {
     throw new ApiError("Store not found for creator", 404);

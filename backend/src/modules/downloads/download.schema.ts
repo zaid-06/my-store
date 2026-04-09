@@ -3,41 +3,54 @@ import {
   uuid,
   varchar,
   integer,
-  timestamp
+  timestamp,
+  unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 import { orders } from "../orders/order.schema";
 import { products } from "../products/product.schema";
+import { table } from "console";
 
-export const digitalDownloads = pgTable("digital_downloads", {
-  id: uuid("id").primaryKey().defaultRandom(),
 
-  orderId: uuid("order_id")
-    .notNull()
-    .references(() => orders.id, { onDelete: "cascade" }),
 
-  productId: uuid("product_id")
-    .notNull()
-    .references(() => products.id, { onDelete: "cascade" }),
 
-  variantId: uuid("variant_id"),
+export const digitalDownloads = pgTable(
+  "digital_downloads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
 
-  // hashed token (preferred)
-  token: varchar("token", { length: 128 }).notNull().unique(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
 
-  maxDownloads: integer("max_downloads"),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
 
-  downloadCount: integer("download_count")
-    .notNull()
-    .default(0),
+    variantId: uuid("variant_id"),
 
-  expiresAt: timestamp("expires_at", { withTimezone: true }),
+    token: varchar("token", { length: 128 }).notNull().unique(),
 
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
+    maxDownloads: integer("max_downloads"),
+
+    downloadCount: integer("download_count")
+      .notNull()
+      .default(0),
+
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    uniqueOrderProduct: unique("unique_order_product").on(
+      table.orderId,
+      table.productId
+    ),
+  })
+);
 
 
 

@@ -6,14 +6,14 @@ export const orderRoutes = Router();
 import { Role } from "../../types/roles";
 import {rateLimiter} from "../../middlewares/rateLimiter";
 
-
+import {requireMerchant} from "../../middlewares/requireMerchant";
 import {
   getCreatorOrdersController,
   getCreatorOrderController,
   updateOrderStatusController,
   markOrderRefundController
  } from "./order.controller";
-import { requireAuth, requireRole } from "../auth/auth.middleware";
+import { requireAuth } from "../auth/auth.middleware";
 
 orderRoutes.post("/",
    rateLimiter,
@@ -23,7 +23,7 @@ orderRoutes.post("/",
 orderRoutes.get(
   "/",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   getCreatorOrdersController
 );
 
@@ -33,7 +33,7 @@ orderRoutes.get(
 orderRoutes.get(
   "/:id",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   getCreatorOrderController
 );
 
@@ -44,7 +44,7 @@ orderRoutes.get(
 orderRoutes.patch(
   "/:id/status",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   updateOrderStatusController
 );
 
@@ -53,7 +53,7 @@ orderRoutes.patch(
 orderRoutes.patch(
   "/:id/refund",
   requireAuth,
-  requireRole(Role.CREATOR),
+  requireMerchant,
   markOrderRefundController
 );
 
